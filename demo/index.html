@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CSSCMS</title>
+    <link rel="stylesheet" href="spectrum.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css">
+    <style>
+    .css-func {
+        background-color: rgba(0, 0, 0, 0.1);
+        padding: 1em;
+        margin: 0.4em;
+    }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+            <div class="col-md-12">
+        <h1>CSSCMS</h1>
+    </div>
+
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <pre>
+                <code id="code"></code>
+            </pre>
+        </div>
+        <div class="col-md-6">
+            <div class="well" id="inputs"></div>
+        </div>
+    </div>
+</div>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script src="spectrum.js"></script>
+<script>
+$(document).ready(function(){
+    $('#inputs').load('inputs.html', function(){
+        $('input[type="color"]').spectrum();
+        $('input, select, textarea').addClass('form-control');
+    });
+    $('#code').load('simple.css');
+});
+</script>
+</body>
+</html>

@@ -20,6 +20,10 @@ css_options = {
     'css_visible': [
         'backface-visibility', 'visibility'
     ],
+    'dropdown_border': [
+        'none', 'hidden', 'dotted', 'dashed', 'solid', 'double',
+        'groove', 'ridge', 'inset', 'outset', 'initial', 'inherit'
+    ],
     'dropdown_visible': [
         'hidden',
         'visible',
@@ -293,6 +297,9 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         if prop_name in css_options['css_visible']:
             html = self._get_dropdown_data(
                 css_options['dropdown_visible'], name=prop_name)
+        if prop_name in ['border', 'border-style']:
+            html = self._get_dropdown_data(
+                css_options['dropdown_border'], name=prop_name)
         else:
             html = self._get_input_data(
                 prop_tokens.type, prop_name,
@@ -342,4 +349,4 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
 
 if __name__ == '__main__':
-    InputBuilder('simple.css').generate().save('inputs.html')
+    InputBuilder('demo/simple.css').generate().save('demo/inputs.html')
