@@ -2,7 +2,7 @@ import tinycss
 import css_properties
 
 
-css_options = {
+css_opts = {
     'bad_properties': [
         'filter',
         'ms-filter',
@@ -20,7 +20,7 @@ css_options = {
     # Properties assigned to each Token; taken from:
     # pythonhosted.org/tinycss/parsing.html#tinycss.token_data.Token.type
     # Maps a Token class "type" to an actual relevant input field.
-    'prop_types': {
+    'types': {
         ':': '',
         'S': '',
         'IDENT': '',
@@ -35,6 +35,8 @@ css_options = {
         'URI': '<input type="file" name="{name}">',
         'UNICODE-RANGE': '',
         'FUNCTION': '',
+        'OPTION': '<option value="{}">{}</option>',
+        'BOOLEAN': '<input type="checkbox" checked={is_checked}>',
         'DIMENSION': '<input type="number" name="{name}"  placeholder="{placeholder}">',
         'STRING': '<input type="text" name="{name}" placeholder="{placeholder}">',
         'DELIM': '',
@@ -57,13 +59,13 @@ class CSSParserMixin():
                 if self._is_percentage(sub_token):
                     label = '{}-percent-{}'.format(grad_type, k)
                     _inputs.append(
-                        [label, css_options['prop_types']['PERCENTAGE'].format(
+                        [label, css_opts['types']['PERCENTAGE'].format(
                             name=label,
                             placeholder=sub_token[:-1])])
                 elif self._is_hex(sub_token):
                     label = '{}-hex-{}'.format(grad_type, k)
                     _inputs.append(
-                        [label, css_options['prop_types']['HASH'].format(
+                        [label, css_opts['types']['HASH'].format(
                             name=label,
                             placeholder=sub_token)])
         return _inputs
@@ -71,24 +73,24 @@ class CSSParserMixin():
     def _parse_rgb(self, function):
         _inputs = []
         function = function.replace('rgba(', '').replace(')', '').split(',')
-        _inputs.append(['red', css_options['prop_types']['RGBHSV'].format(
+        _inputs.append(['red', css_opts['types']['RGBHSV'].format(
             name='red', placeholder=function[0])])
-        _inputs.append(['green', css_options['prop_types']['RGBHSV'].format(
+        _inputs.append(['green', css_opts['types']['RGBHSV'].format(
             name='green', placeholder=function[1])])
-        _inputs.append(['blue', css_options['prop_types']['RGBHSV'].format(
+        _inputs.append(['blue', css_opts['types']['RGBHSV'].format(
             name='blue', placeholder=function[2])])
         return _inputs
 
     def _parse_rgba(self, function):
         _inputs = []
         function = function.replace('rgba(', '').replace(')', '').split(',')
-        _inputs.append(['red', css_options['prop_types']['RGBHSV'].format(
+        _inputs.append(['red', css_opts['types']['RGBHSV'].format(
             name='red', placeholder=function[0])])
-        _inputs.append(['green', css_options['prop_types']['RGBHSV'].format(
+        _inputs.append(['green', css_opts['types']['RGBHSV'].format(
             name='green', placeholder=function[1])])
-        _inputs.append(['blue', css_options['prop_types']['RGBHSV'].format(
+        _inputs.append(['blue', css_opts['types']['RGBHSV'].format(
             name='blue', placeholder=function[2])])
-        _inputs.append(['alpha', css_options['prop_types']['INTEGER'].format(
+        _inputs.append(['alpha', css_opts['types']['INTEGER'].format(
             name='alpha', placeholder=function[3])])
         return _inputs
 
@@ -98,17 +100,17 @@ class CSSParserMixin():
         for k, token in enumerate(function):
             # Filter out transforms, until we can do selects/options TODO
             input_html = ''
-            if token and token not in css_options['xforms']:
+            if token and token not in css_opts['xforms']:
                 token = token.replace(',', '')
                 kwargs = {'name': token, 'placeholder': token}
                 if self._is_float(token):
-                    input_html = css_options['prop_types']['FLOAT'].format(**kwargs)
+                    input_html = css_opts['types']['FLOAT'].format(**kwargs)
                 elif token.endswith('px'):
-                    input_html = css_options['prop_types']['NUMBER'].format(**kwargs)
+                    input_html = css_opts['types']['NUMBER'].format(**kwargs)
                 elif token.endswith('deg'):
-                    input_html = css_options['prop_types']['DEG'].format(**kwargs)
+                    input_html = css_opts['types']['DEG'].format(**kwargs)
                 elif self._is_int(token):
-                    input_html = css_options['prop_types']['INTEGER'].format(**kwargs)
+                    input_html = css_opts['types']['INTEGER'].format(**kwargs)
                 else:
                     continue
                 # Add after to keep DRY
@@ -146,7 +148,7 @@ class CSSParserMixin():
             inputs += self._parse_gradient(function, 'linear-gradient')
         elif function.startswith('radial-gradient'):
             inputs += self._parse_gradient(function, 'radial-gradient')
-        elif filter(lambda prop: function.startswith(prop), css_options['xforms']):
+        elif filter(lambda prop: function.startswith(prop), css_opts['xforms']):
             inputs += self._parse_transform(function)
 
         # Finally, build up individual surrounding labels + input
@@ -163,9 +165,9 @@ class ValidationHelpersMixin():
 
     def _is_valid_css_property(self, prop_name):
         """Allows for arbitrary validation, with some sane defaults"""
-        return (prop_name not in css_options['bad_properties']
+        return (prop_name not in css_opts['bad_properties']
                 and prop_name not in self.unwanted_props
-                and prop_name not in css_options['bad_values'])
+                and prop_name not in css_opts['bad_values'])
 
     def _is_hex(self, val):
         """Checks for a valid hex string, e.g. `#fff` or `#ff0000`"""
@@ -247,11 +249,21 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     def _get_dropdown_html(self, options, name=''):
         """Takes name and options, then builds matching select>option html"""
+        # Accompanying input html required for some situations
+        non_dropdown_html = ''
         opt_html = '<select name="{}">'.format(name)
         for option in options:
-            opt_html += '<option value="{}">{}</option>'.format(option, option)
+            # One off cases where some properties should be represented
+            # by a different field type
+            # TODO: make this suck less
+            if option == '%':
+                non_dropdown_html += css_opts['types']['PERCENTAGE']
+            elif option == 'color':
+                non_dropdown_html += css_opts['types']['HASH']
+            else:
+                opt_html += css_opts['types']['OPTION'].format(option, option)
         opt_html += '</select>'
-        return opt_html
+        return (non_dropdown_html + opt_html)
 
     def _get_input_html(self, token_type, prop, value='',
                         custom_input_html=None, token=None):
@@ -259,10 +271,10 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         # Functions need to be parsed a second time, separately.
         if token_type == 'FUNCTION':
             input_html = self._parse_css_function_inputs(value)
-        elif not css_options['prop_types'][token_type]:
+        elif not css_opts['types'][token_type]:
             input_html = ''
         else:
-            input_html = css_options['prop_types'][token_type].format(
+            input_html = css_opts['types'][token_type].format(
                 name=prop, placeholder=value,
                 value=value if self.use_value else '')
         return input_html
@@ -294,7 +306,7 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                     prop_tokens.type, prop_name,
                     value=value_token, token=prop_tokens)
         except KeyError:
-            html = ''
+            return None
         return {
             'name': prop_name,
             'input_html': html
@@ -321,8 +333,13 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                         kwargs = self._get_field_kwargs(
                             prop_tokens, prop_name, value_token)
                         # Add the final rendered html + labels, etc
-                        input_group['inputs'].append(
-                            self._wrap_input_html(**kwargs))
+                        if kwargs is not None:
+                            # Only append properties that could be
+                            # rendered as form fields
+                            input_group['inputs'].append(
+                                self._wrap_input_html(**kwargs))
+                        else:
+                            print '[ERROR] Parsing:', prop_name
             # Convert lists to actual html
             sel_name = ', <br>'.join(input_group['selector'].split(','))
             code = ' '.join(input_group['inputs'])
