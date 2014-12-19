@@ -205,6 +205,9 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     TODO: css transitions
 
+    TODO: better way to handle combos of select dropdowns AND input fields
+    (e.g. image css props, that require url() or default options...)
+
     TODO: handle media queries
 
     TODO: handle `inset` option
@@ -242,15 +245,15 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             val = val[:-1]
         return val
 
-    def _get_dropdown_data(self, options, name=''):
+    def _get_dropdown_html(self, options, name=''):
         """Takes name and options, then builds matching select>option html"""
-        opt_html = '<select name="{}">'
+        opt_html = '<select name="{}">'.format(name)
         for option in options:
             opt_html += '<option value="{}">{}</option>'.format(option, option)
         opt_html += '</select>'
         return opt_html
 
-    def _get_input_data(self, token_type, prop, value='',
+    def _get_input_html(self, token_type, prop, value='',
                         custom_input_html=None, token=None):
         value = self._strip_quotes(value)
         # Functions need to be parsed a second time, separately.
@@ -281,11 +284,13 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
     def _get_field_kwargs(self, prop_tokens, prop_name, value_token):
         """Generates kwargs to be used by builder"""
         try:
-            if css_properties.props[prop_name]['dropdown']:
-                    html = self._get_dropdown_data(
-                        css_properties.props[prop_name]['props'], name=prop_name)
+            prop_key = self.prop_key = css_properties.props[prop_name]
+            is_dropdown = prop_key['dropdown']
+            if is_dropdown:
+                    html = self._get_dropdown_html(
+                        prop_key['props'], name=prop_name)
             else:
-                html = self._get_input_data(
+                html = self._get_input_html(
                     prop_tokens.type, prop_name,
                     value=value_token, token=prop_tokens)
         except KeyError:
