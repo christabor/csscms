@@ -17,19 +17,6 @@ css_options = {
         'scale', 'scaleX', 'scaleY', 'scaleZ', 'scale3d',
         'rotate', 'rotateX', 'rotateY', 'rotateZ', 'rotate3d'
     ],
-    'css_visible': [
-        'backface-visibility', 'visibility'
-    ],
-    'dropdown_border': [
-        'none', 'hidden', 'dotted', 'dashed', 'solid', 'double',
-        'groove', 'ridge', 'inset', 'outset', 'initial', 'inherit'
-    ],
-    'dropdown_visible': [
-        'hidden',
-        'visible',
-        'initial',
-        'inherit',
-    ],
     # Properties assigned to each Token; taken from:
     # pythonhosted.org/tinycss/parsing.html#tinycss.token_data.Token.type
     # Maps a Token class "type" to an actual relevant input field.
@@ -226,14 +213,13 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     TODO: dropdown for non-numeric options, like some css func args
 
-    TODO: dropdown for visiblity* properties
+    TODO: better data structure implementation
 
     """
 
     def __init__(self, filename, custom_input_html=None):
         self.use_value = True
         self._generated_data = None
-        self.properties = css_properties
         self.css_input_wrapper_class = 'css-func'
         self.unwanted_props = []
         self.custom_input_html = custom_input_html
@@ -294,16 +280,16 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     def _get_field_kwargs(self, prop_tokens, prop_name, value_token):
         """Generates kwargs to be used by builder"""
-        if prop_name in css_options['css_visible']:
-            html = self._get_dropdown_data(
-                css_options['dropdown_visible'], name=prop_name)
-        if prop_name in ['border', 'border-style']:
-            html = self._get_dropdown_data(
-                css_options['dropdown_border'], name=prop_name)
-        else:
-            html = self._get_input_data(
-                prop_tokens.type, prop_name,
-                value=value_token, token=prop_tokens)
+        try:
+            if css_properties.props[prop_name]['dropdown']:
+                    html = self._get_dropdown_data(
+                        css_properties.props[prop_name]['props'], name=prop_name)
+            else:
+                html = self._get_input_data(
+                    prop_tokens.type, prop_name,
+                    value=value_token, token=prop_tokens)
+        except KeyError:
+            html = ''
         return {
             'name': prop_name,
             'input_html': html
