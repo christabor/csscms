@@ -1,28 +1,9 @@
 .btn-danger {
-
-
-/*
-    background: linear-gradient(to bottom, #f3c5bd 0%,#e86c57 50%,#ea2803 51%,#ff6600 75%,#c72200 100%);
-    -webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15), 0 1px 1px rgba(0, 0, 0, .075);
     background-image: linear-gradient(to bottom, #604EB 0%, #201EFF 100%);
-    background-image: -o-linear-gradient(bottom, #604EB 0%, #201EFF 100%);
-*/
-
-    /*background: -moz-linear-gradient(top, #f3c5bd 0%, #e86c57 50%, #ea2803 51%, #ff6600 75%, #c72200 100%);*/
-    /*background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f3c5bd), color-stop(50%,#e86c57), color-stop(51%,#ea2803), color-stop(75%,#ff6600), color-stop(100%,#c72200));*/
-    /*background: -webkit-linear-gradient(top, #f3c5bd 0%,#e86c57 50%,#ea2803 51%,#ff6600 75%,#c72200 100%);*/
-    /*background: -o-linear-gradient(top, #f3c5bd 0%,#e86c57 50%,#ea2803 51%,#ff6600 75%,#c72200 100%);*/
-    /*background: -ms-linear-gradient(top, #f3c5bd 0%,#e86c57 50%,#ea2803 51%,#ff6600 75%,#c72200 100%);*/
-    /*filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f3c5bd', endColorstr='#c72200',GradientType=0 );*/
-
     background: radial-gradient(ellipse at center, #1e5799 0%,#2989d8 50%,#207cca 51%,#7db9e8 100%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15), 0 1px 1px rgba(0, 0, 0, .075);
     transform-style: preserve-3d;
-
-
     backface-visibility: hidden;
     visibility: hidden;
-
     background: url(foobar.jpg);
 
     /* testing all transforms */
@@ -49,40 +30,28 @@
     transform: perspective(17px);
     transform: translateX(10px) rotate(10deg) translateY(5px);
 
-
-
-    text-shadow: 0 -1px 0 rgba(0, 0, 0, .2);
     color: rgb(100, 100, 100);
-    background-image: -webkit-gradient(
-        linear,
-        left top,
-        left bottom,
-        color-stop(0, #604EB),
-        color-stop(1, #201EFF)
-    );
-    background-image: -moz-linear-gradient(bottom, #604EB 0%, #201EFF 100%);
-    background-image: -webkit-linear-gradient(bottom, #604EB 0%, #201EFF 100%);
-    background-image: -ms-linear-gradient(bottom, #604EB 0%, #201EFF 100%);
-
 
 
     /* a-z standard. */
 
 
     azimuth: '';
-    background: '';
+    background: url(foo.jpg); /* DONE */
     background-attachment: '';
-    background-color: '';
-    background-image: '';
-    background-position: '';
-    background-position-x: '';
-    background-position-y: '';
-    background-repeat: '';
+    background-color: #444; /* DONE */
+    background-image: url(foo.jpg);
+    background-position: top left;
+    background-position: 10px 10px;
+    background-position: 40% 40%;
+    background-position-x: 1px;
+    background-position-y: 1px;
+    background-repeat: no-repeat;
     behavior: '';
-    border: '1px solid #444';
-    border-bottom: '2px';
-    border-bottom-color: 'red';
-    border-bottom-style: 'dotted';
+    border: 1px solid #444;
+    border-bottom: 2px;
+    border-bottom-color: red;
+    border-bottom-style: dotted;
     border-bottom-width: '';
     border-collapse: '';
     border-color: '';
@@ -96,18 +65,18 @@
     border-right-width: '';
     border-spacing: '';
     border-style: '';
-    border-top: '';
-    border-top-color: '';
-    border-top-style: '';
-    border-top-width: '';
-    border-width: '';
-    bottom: '';
-    box-shadow: '';
+    border-top: 1px solid #444;
+    border-top-color: red;
+    border-top-style: dashed;
+    border-top-width: 2px;
+    border-width: 2px;
+    bottom: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15), 0 1px 1px rgba(0, 0, 0, .075);
     caption-side: '';
-    clear: '';
+    clear: both;
     clip: '';
-    color: '';
-    content: '';
+    color: red;
+    content: 'FOOBAR';
     counter-increment: '';
     counter-reset: '';
     cue: '';
@@ -159,25 +128,6 @@
     max-width: '';
     min-height: '';
     min-width: '';
-    -moz-binding: '';
-    -moz-border-radius: '';
-    -moz-border-radius-topleft: '';
-    -moz-border-radius-topright: '';
-    -moz-border-radius-bottomright: '';
-    -moz-border-radius-bottomleft: '';
-    -moz-border-top-colors: '';
-    -moz-border-right-colors: '';
-    -moz-border-bottom-colors: '';
-    -moz-border-left-colors: '';
-    -moz-opacity: '';
-    -moz-outline: '';
-    -moz-outline-color: '';
-    -moz-outline-style: '';
-    -moz-outline-width: '';
-    -moz-user-focus: '';
-    -moz-user-input: '';
-    -moz-user-modify: '';
-    -moz-user-select: '';
     orphans: '';
     outline: '';
     outline-color: '';
@@ -232,12 +182,12 @@
     text-indent: '';
     text-justify: '';
     text-overflow: '';
-    text-shadow: '';
-    text-transform: '';
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, .2);
+    text-transform: uppercase;
     text-autospace: '';
     text-kashida-space: '';
     text-underline-position: '';
-    top: '';
+    top: 10px;
     unicode-bidi: '';
     -use-link-source: '';
     vertical-align: '';
