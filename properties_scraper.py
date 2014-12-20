@@ -11,6 +11,7 @@ from pyquery import PyQuery as pq
     text-text-
     pos-
     font-font-
+    nav-
     class-
     gen-
 
@@ -19,7 +20,23 @@ from pyquery import PyQuery as pq
 """
 
 
+def strip_all_prefixes(string):
+    bad_prefixes = [
+        'text-text-',
+        'pos-',
+        'font-font-',
+        'nav-',
+        'class-',
+        'gen-',
+        'tab-'
+    ]
+    for prefix in bad_prefixes:
+        string = string.replace(prefix, '')
+    return string
+
+
 def normalize_w3c_link(url):
+    url = strip_all_prefixes(url)
     return '-'.join(url.replace(
         '.asp', '').replace('css3_pr_', '').replace('pr_', '').split('_'))
 

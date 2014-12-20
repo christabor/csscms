@@ -32,6 +32,7 @@ css_opts = {
         'PERCENTAGE': '<input type="number" min="0" max="100" name="{name}" value="{placeholder}">',
         'HASH': '<input type="color" value="{placeholder}" name="{name}">',
         'ATKEYWORD': '',
+        'URL': '<input type="file" name="{name}">',
         'URI': '<input type="file" name="{name}">',
         'UNICODE-RANGE': '',
         'FUNCTION': '',
@@ -166,6 +167,8 @@ class ValidationHelpersMixin():
     def _is_valid_css_property(self, prop_name):
         """Allows for arbitrary validation, with some sane defaults"""
         return (prop_name not in css_opts['bad_properties']
+                # No vendor prefixed props.
+                and not prop_name.startswith('-')
                 and prop_name not in self.unwanted_props
                 and prop_name not in css_opts['bad_values'])
 
@@ -216,9 +219,14 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     TODO: docs, docstrings
 
+    TODO: handle font-weight numbers
+
+    TODO: accurately handle multiple tranform declarations
+
     TODO: dropdown for non-numeric options, like some css func args
 
-    TODO: better data structure implementation
+    TODO: handle multiple value non-function
+    inputs (e.g. font: '', or background: '')
 
     """
 
@@ -248,22 +256,34 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         return val
 
     def _get_dropdown_html(self, options, name=''):
-        """Takes name and options, then builds matching select>option html"""
+        """Takes name and options, then builds matching select > option html"""
         # Accompanying input html required for some situations
         non_dropdown_html = ''
         opt_html = '<select name="{}">'.format(name)
         for option in options:
             # One off cases where some properties should be represented
             # by a different field type
-            # TODO: make this suck less
+            # TODO: make this suck less, normalize then use key instead?
             if option == '%':
                 non_dropdown_html += css_opts['types']['PERCENTAGE']
-            elif option == 'color':
+            elif option == 'number' or option == 'length':
+                non_dropdown_html += css_opts['types']['INTEGER'].format(value=1)
+            elif option == 'url':
+                non_dropdown_html += css_opts['types']['URI']
+            elif option == 'color' or option == 'background-color':
                 non_dropdown_html += css_opts['types']['HASH']
+            elif option == 'x% y%':
+                non_dropdown_html += css_opts['types']['PERCENTAGE'].format(name='x%')
+                non_dropdown_html += css_opts['types']['PERCENTAGE'].format(name='y%')
+            elif option == 'xpos ypos':
+                non_dropdown_html += css_opts['types']['INTEGER'].format(name='xpos')
+                non_dropdown_html += css_opts['types']['INTEGER'].format(name='ypos')
             else:
                 opt_html += css_opts['types']['OPTION'].format(option, option)
         opt_html += '</select>'
-        return (non_dropdown_html + opt_html)
+        return (non_dropdown_html + (
+            '<em class="or-divider">or</em>'
+            if non_dropdown_html else '') + opt_html)
 
     def _get_input_html(self, token_type, prop, value='',
                         custom_input_html=None, token=None):
