@@ -36,7 +36,7 @@ css_opts = {
         'URI': '<input type="file" name="{name}">',
         'UNICODE-RANGE': '',
         'FUNCTION': '',
-        'OPTION': '<option value="{}">{}</option>',
+        'OPTION': '<option value="{value}">{placeholder}</option>',
         'BOOLEAN': '<input type="checkbox" checked={is_checked}>',
         'DIMENSION': '<input type="number" name="{name}"  placeholder="{placeholder}">',
         'STRING': '<input type="text" name="{name}" placeholder="{placeholder}">',
@@ -94,6 +94,14 @@ class CSSParserMixin():
         _inputs.append(['alpha', css_opts['types']['INTEGER'].format(
             name='alpha', placeholder=function[3])])
         return _inputs
+
+    def _parse_media_query(self, function):
+        # TODO
+        pass
+
+    def _parse_css_transition(self, function):
+        # TODO
+        pass
 
     def _parse_transform(self, function):
         _inputs = []
@@ -221,7 +229,7 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     TODO: handle font-weight numbers
 
-    TODO: accurately handle multiple tranform declarations
+    TODO: accurately handle multiple transform declarations
 
     TODO: dropdown for non-numeric options, like some css func args
 
@@ -255,44 +263,55 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             val = val[:-1]
         return val
 
-    def _get_dropdown_html(self, options, name=''):
-        """Takes name and options, then builds matching select > option html"""
+    def _convert_odd_types(self, value):
+        odd_props = {
+            '%': 'PERCENTAGE',
+            'number': 'INTEGER',
+            'length': 'INTEGER',
+            'color': 'HASH',
+            'background-color': 'HASH',
+            'x% y%': 'PERCENTAGE',
+            'xpos ypos': 'INTEGER',
+            'url': 'URI',
+            'x-axis': 'INTEGER',
+            'y-axis': 'INTEGER',
+            'z-axis': 'INTEGER',
+            'keyframename': 'STRING',
+        }
+        try:
+            return odd_props[value]
+        except KeyError:
+            return None
+
+    def _get_dropdown_html(self, values, name='', token=None):
+        """Takes name and value, then builds
+        matching select > option html"""
         # Accompanying input html required for some situations
         non_dropdown_html = ''
-        opt_html = '<select name="{}">'.format(name)
-        for option in options:
-            # One off cases where some properties should be represented
+        dropdown_html = '<select name="{}">'.format(name)
+        for value in values:
+            # One off cases where some value should be represented
             # by a different field type
-            # TODO: make this suck less, normalize then use key instead?
-            if option == '%':
-                non_dropdown_html += css_opts['types']['PERCENTAGE']
-            elif option == 'number' or option == 'length':
-                non_dropdown_html += css_opts['types']['INTEGER'].format(value=1)
-            elif option == 'url':
-                non_dropdown_html += css_opts['types']['URI']
-            elif option == 'color' or option == 'background-color':
-                non_dropdown_html += css_opts['types']['HASH']
-            elif option == 'x% y%':
-                non_dropdown_html += css_opts['types']['PERCENTAGE'].format(name='x%')
-                non_dropdown_html += css_opts['types']['PERCENTAGE'].format(name='y%')
-            elif option == 'xpos ypos':
-                non_dropdown_html += css_opts['types']['INTEGER'].format(name='xpos')
-                non_dropdown_html += css_opts['types']['INTEGER'].format(name='ypos')
+            if value in ['%', 'number', 'length', 'url', 'color',
+                         'background-color', 'x% y%', 'keyframename',
+                         'xpos ypos', 'x-axis', 'y-axis', 'z-axis']:
+                new_token_type = self._convert_odd_types(value)
+                non_dropdown_html += self._get_input_html(new_token_type, value, value=value)
             else:
-                opt_html += css_opts['types']['OPTION'].format(option, option)
-        opt_html += '</select>'
+                # Build the /actual/ option html.
+                dropdown_html += self._get_input_html('OPTION', value, value=value)
+        dropdown_html += '</select>'
         return (non_dropdown_html + (
             '<em class="or-divider">or</em>'
-            if non_dropdown_html else '') + opt_html)
+            if non_dropdown_html else '') + dropdown_html)
 
-    def _get_input_html(self, token_type, prop, value='',
-                        custom_input_html=None, token=None):
+    def _get_input_html(self, token_type, prop, value=''):
         value = self._strip_quotes(value)
         # Functions need to be parsed a second time, separately.
         if token_type == 'FUNCTION':
             input_html = self._parse_css_function_inputs(value)
-        elif not css_opts['types'][token_type]:
-            input_html = ''
+        elif token_type == 'IDENT':
+            input_html = self._parse_css_transition(value)
         else:
             input_html = css_opts['types'][token_type].format(
                 name=prop, placeholder=value,
@@ -316,16 +335,16 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
     def _get_field_kwargs(self, prop_tokens, prop_name, value_token):
         """Generates kwargs to be used by builder"""
         try:
-            prop_key = self.prop_key = css_properties.props[prop_name]
+            prop_key = css_properties.props[prop_name]
             is_dropdown = prop_key['dropdown']
             if is_dropdown:
-                    html = self._get_dropdown_html(
-                        prop_key['props'], name=prop_name)
+                html = self._get_dropdown_html(
+                    prop_key['props'], name=prop_name, token=prop_tokens.type)
             else:
                 html = self._get_input_html(
-                    prop_tokens.type, prop_name,
-                    value=value_token, token=prop_tokens)
+                    prop_tokens.type, prop_name, value=value_token)
         except KeyError:
+            print '[ERROR] Property: "{}"'.format(prop_name)
             return None
         return {
             'name': prop_name,
@@ -358,8 +377,6 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                             # rendered as form fields
                             input_group['inputs'].append(
                                 self._wrap_input_html(**kwargs))
-                        else:
-                            print '[ERROR] Parsing:', prop_name
             # Convert lists to actual html
             sel_name = ', <br>'.join(input_group['selector'].split(','))
             code = ' '.join(input_group['inputs'])
