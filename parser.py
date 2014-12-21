@@ -396,7 +396,7 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
 
 if DEBUG:
-    'Running demo usage...'
+    print '[DEBUG] Running demo usage'
     try:
         InputBuilder('demo/simple.css').generate().save('demo/inputs.html')
     except IOError:
