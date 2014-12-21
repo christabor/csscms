@@ -1,23 +1,7 @@
 from pyquery import PyQuery as pq
 
 
-"""A quick and dirty scraper for w3c's css properties list.
-
-    TODO: W3c adds category prefixes to their properties,
-    so the resulting output is wrong for some attributes.
-
-    These should be stripped off:
-
-    text-text-
-    pos-
-    font-font-
-    nav-
-    class-
-    gen-
-
-    ...and a few more one offs (see error output in parser for details!)
-
-"""
+"""A quick and dirty scraper for w3c's css properties list."""
 
 
 def strip_all_prefixes(string):
