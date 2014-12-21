@@ -2,6 +2,7 @@ import tinycss
 import css_properties
 
 
+DEBUG = False
 css_opts = {
     'bad_properties': [
         'filter',
@@ -20,6 +21,9 @@ css_opts = {
     # Properties assigned to each Token; taken from:
     # pythonhosted.org/tinycss/parsing.html#tinycss.token_data.Token.type
     # Maps a Token class "type" to an actual relevant input field.
+
+    # Also see http://dev.w3.org/csswg/css-syntax/#typedef-ident-token
+    # for CSS specs on token types.
     'types': {
         ':': '',
         'S': '',
@@ -97,10 +101,12 @@ class CSSParserMixin():
 
     def _parse_media_query(self, function):
         # TODO
+        return ''
         pass
 
     def _parse_css_transition(self, function):
         # TODO
+        return ''
         pass
 
     def _parse_transform(self, function):
@@ -267,11 +273,14 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         odd_props = {
             '%': 'PERCENTAGE',
             'number': 'INTEGER',
+            'length length length length': 'INTEGER',
+            'length length': 'INTEGER',
             'length': 'INTEGER',
             'color': 'HASH',
             'background-color': 'HASH',
             'x% y%': 'PERCENTAGE',
             'xpos ypos': 'INTEGER',
+            'time': 'FLOAT',
             'url': 'URI',
             'x-axis': 'INTEGER',
             'y-axis': 'INTEGER',
@@ -294,7 +303,7 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             # by a different field type
             if value in ['%', 'number', 'length', 'url', 'color',
                          'background-color', 'x% y%', 'keyframename',
-                         'xpos ypos', 'x-axis', 'y-axis', 'z-axis']:
+                         'time', 'xpos ypos', 'x-axis', 'y-axis', 'z-axis']:
                 new_token_type = self._convert_odd_types(value)
                 non_dropdown_html += self._get_input_html(new_token_type, value, value=value)
             else:
@@ -332,22 +341,23 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                 self.css_input_wrapper_class,
                 self.default_input_html.format(**kwargs))
 
-    def _get_field_kwargs(self, prop_tokens, prop_name, value_token):
+    def _get_field_kwargs(self, tokens, prop, value_token):
         """Generates kwargs to be used by builder"""
         try:
-            prop_key = css_properties.props[prop_name]
+            prop_key = css_properties.props[prop]
             is_dropdown = prop_key['dropdown']
+            token_type = tokens.type
             if is_dropdown:
                 html = self._get_dropdown_html(
-                    prop_key['props'], name=prop_name, token=prop_tokens.type)
+                    prop_key['props'], name=prop, token=token_type)
             else:
-                html = self._get_input_html(
-                    prop_tokens.type, prop_name, value=value_token)
+                html = self._get_input_html(token_type, prop, value=value_token)
         except KeyError:
-            print '[ERROR] Property: "{}"'.format(prop_name)
+            if DEBUG:
+                print '[ERROR] Property: "{}"'.format(prop)
             return None
         return {
-            'name': prop_name,
+            'name': prop,
             'input_html': html
         }
 
@@ -367,10 +377,9 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                 prop_name = declaration.name
                 if self._is_valid_css_property(prop_name):
                     # Tokens, e.g. "[2px, solid, #4444]"
-                    for prop_tokens in declaration.value:
-                        value_token = prop_tokens.as_css()
+                    for token_type in declaration.value:
                         kwargs = self._get_field_kwargs(
-                            prop_tokens, prop_name, value_token)
+                            token_type, prop_name, token_type.as_css())
                         # Add the final rendered html + labels, etc
                         if kwargs is not None:
                             # Only append properties that could be
