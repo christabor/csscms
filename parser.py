@@ -2,7 +2,7 @@ import tinycss
 import css_properties
 
 
-DEBUG = False
+DEBUG = True
 css_opts = {
     'bad_properties': [
         'filter',
@@ -100,11 +100,6 @@ class CSSParserMixin():
         return _inputs
 
     def _parse_media_query(self, function):
-        # TODO
-        return ''
-        pass
-
-    def _parse_css_transition(self, function):
         # TODO
         return ''
         pass
@@ -319,8 +314,6 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         # Functions need to be parsed a second time, separately.
         if token_type == 'FUNCTION':
             input_html = self._parse_css_function_inputs(value)
-        elif token_type == 'IDENT':
-            input_html = self._parse_css_transition(value)
         else:
             input_html = css_opts['types'][token_type].format(
                 name=prop, placeholder=value,
@@ -402,5 +395,9 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             newfile.write('\n')
 
 
-if __name__ == '__main__':
-    InputBuilder('demo/simple.css').generate().save('demo/inputs.html')
+if DEBUG:
+    'Running demo usage...'
+    try:
+        InputBuilder('demo/simple.css').generate().save('demo/inputs.html')
+    except IOError:
+        print '[ERROR] Could not load file or generate inputs'
