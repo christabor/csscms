@@ -18,6 +18,14 @@ css_opts = {
         'scale', 'scaleX', 'scaleY', 'scaleZ', 'scale3d',
         'rotate', 'rotateX', 'rotateY', 'rotateZ', 'rotate3d'
     ],
+    # @import types
+    'media_types': [
+        'print', 'tv', 'all', 'screen', 'projection',
+    ],
+    # @keyword types.
+    'at_types': [
+        'import', 'media', 'keyframes'
+    ],
     # Properties assigned to each Token; taken from:
     # pythonhosted.org/tinycss/parsing.html#tinycss.token_data.Token.type
     # Maps a Token class "type" to an actual relevant input field.
@@ -48,6 +56,18 @@ css_opts = {
         'VISIBLE': '',
     },
 }
+
+
+class MissingTokenType(Exception):
+    def __init__(self):
+        print ('Invalid token type: please add a '
+               'new one to the token types config.')
+
+
+class MissingAtKeywordType(Exception):
+    def __init__(self):
+        print ('Invalid @ keyword type. Options are: {}'.format(
+            ' ').join(css_opts['at_types']))
 
 
 class CSSParserMixin():
@@ -217,18 +237,23 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     TODO: tests!
 
-    TODO: css transitions
+    TODO: implement boolean field for !important,
+    important via `priority` property.
 
     TODO: better way to handle combos of select dropdowns AND input fields
     (e.g. image css props, that require url() or default options...)
 
-    TODO: handle media queries
+    TODO: handle @media (queries)
 
     TODO: handle `inset` option
 
     TODO: docs, docstrings
 
     TODO: handle font-weight numbers
+
+    TODO: handle @imports
+
+    TODO: handle @keyframes
 
     TODO: accurately handle multiple transform declarations
 
@@ -312,13 +337,16 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
     def _get_input_html(self, token_type, prop, value=''):
         value = self._strip_quotes(value)
         # Functions need to be parsed a second time, separately.
-        if token_type == 'FUNCTION':
-            input_html = self._parse_css_function_inputs(value)
-        else:
-            input_html = css_opts['types'][token_type].format(
-                name=prop, placeholder=value,
-                value=value if self.use_value else '')
-        return input_html
+        try:
+            if token_type == 'FUNCTION':
+                input_html = self._parse_css_function_inputs(value)
+            else:
+                input_html = css_opts['types'][token_type].format(
+                    name=prop, placeholder=value,
+                    value=value if self.use_value else '')
+            return input_html
+        except KeyError:
+            raise MissingTokenType
 
     def _wrap_input_html(self, **kwargs):
         """Wraps input/select, etc... with surrounding html,
@@ -334,7 +362,7 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                 self.css_input_wrapper_class,
                 self.default_input_html.format(**kwargs))
 
-    def _get_field_kwargs(self, tokens, prop, value_token):
+    def _get_formfield_kwargs(self, tokens, prop, value_token):
         """Generates kwargs to be used by builder"""
         try:
             prop_key = css_properties.props[prop]
@@ -354,37 +382,102 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             'input_html': html
         }
 
+    def _get_at_keyword_type(self, ruleset):
+        try:
+            if ruleset.media:
+                return 'import'
+            elif ruleset.media_query:
+                return 'media'
+            elif ruleset.keyframes:
+                return 'keyframes'
+        except AttributeError:
+            return ''
+
+    def _generate_keyframes_declarations(self, ruleset, selector):
+        # TODO
+        group = {
+            'selector': selector,
+            'inputs': []
+        }
+        return group
+
+    def _generate_mediaquery_declarations(self, ruleset, selector):
+        # TODO
+        group = {
+            'selector': selector,
+            'inputs': []
+        }
+        return group
+
+    def _generate_import_declarations(self, ruleset, selector):
+        group = {
+            'selector': selector,
+            'inputs': []
+        }
+        for media_type in ruleset.media:
+            # All media types are basic strings except for url() declarations
+            if media_type in css_opts['media_types']:
+                kwargs = {
+                    'name': media_type,
+                    'input_html': self._get_input_html(
+                        'URL', media_type, value=ruleset.uri)
+                }
+                group['inputs'].append(self._wrap_input_html(**kwargs))
+        return group
+
+    def _generate_regular_declarations(self, ruleset, selector):
+        group = {
+            'selector': selector,
+            'inputs': []
+        }
+        # All declarations in the selector
+        for declaration in ruleset.declarations:
+            # Property, e.g. background-color
+            prop_name = declaration.name
+            if self._is_valid_css_property(prop_name):
+                # Tokens, e.g. "[2px, solid, #4444]"
+                for token_type in declaration.value:
+                    kwargs = self._get_formfield_kwargs(
+                        token_type, prop_name, token_type.as_css())
+                    # Add the final rendered html + labels, etc
+                    if kwargs is not None:
+                        # Only append properties that could be
+                        # rendered as form fields
+                        group['inputs'].append(
+                            self._wrap_input_html(**kwargs))
+        return group
+
     def generate(self):
-        """Generates all html from the available stylesheet reference"""
-        inputs = []
+        """Generates all html from the available stylesheet
+        reference exposed by init function."""
+        html_inputs = []
         for ruleset in self.stylesheet.rules:
-            # The group or single selector:
-            # .foo, .bar, .foo.bar {}
-            input_group = {
-                'selector': ruleset.selector.as_css(),
-                'inputs': []
-            }
-            # All declarations in the selector
-            for declaration in ruleset.declarations:
-                # Property, e.g. background-color
-                prop_name = declaration.name
-                if self._is_valid_css_property(prop_name):
-                    # Tokens, e.g. "[2px, solid, #4444]"
-                    for token_type in declaration.value:
-                        kwargs = self._get_field_kwargs(
-                            token_type, prop_name, token_type.as_css())
-                        # Add the final rendered html + labels, etc
-                        if kwargs is not None:
-                            # Only append properties that could be
-                            # rendered as form fields
-                            input_group['inputs'].append(
-                                self._wrap_input_html(**kwargs))
+            group_label = None
+            is_at_keyword = ruleset.at_keyword is not None
+            if is_at_keyword:
+                # e.g. @import url('foo.css') projection, tv;
+                group_label = '@' + self._get_at_keyword_type(ruleset)
+                # Drill down further to determine the @ keyword type
+                try:
+                    label_map = {
+                        '@import': self._generate_import_declarations(ruleset, group_label),
+                        '@media': self._generate_mediaquery_declarations(ruleset, group_label),
+                        '@keyframes': self._generate_keyframes_declarations(ruleset, group_label)
+                    }
+                    group = label_map[group_label]
+                except KeyError:
+                    raise MissingAtKeywordType
+            else:
+                # The group or single selector:
+                # .foo, .bar, .foo.bar {}
+                group_label = ruleset.selector.as_css()
+                group = self._generate_regular_declarations(ruleset, group_label)
             # Convert lists to actual html
-            sel_name = ', <br>'.join(input_group['selector'].split(','))
-            code = ' '.join(input_group['inputs'])
-            inputs.append(self.input_container_html.format(
-                sel_name, '{...}', code=code))
-        self._generated_data = ''.join(inputs)
+            sel_name = ', <br>'.join(group['selector'].split(','))
+            code = ' '.join(group['inputs'])
+            html_inputs.append(self.input_container_html.format(sel_name, '{...}', code=code))
+        # Join all data and populate global property
+        self._generated_data = ''.join(html_inputs)
         return self
 
     def save(self, filename):
@@ -396,7 +489,7 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
 
 if DEBUG:
-    print '[DEBUG] Running demo usage'
+    print '[DEBUG] Running demo'
     try:
         InputBuilder('demo/simple.css').generate().save('demo/inputs.html')
     except IOError:
