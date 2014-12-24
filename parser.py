@@ -458,11 +458,11 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                 # Drill down further to determine the @ keyword type
                 try:
                     label_map = {
-                        '@import': self._generate_import_declarations(ruleset, group_label),
-                        '@media': self._generate_mediaquery_declarations(ruleset, group_label),
-                        '@keyframes': self._generate_keyframes_declarations(ruleset, group_label)
+                        '@import': self._generate_import_declarations,
+                        '@media': self._generate_mediaquery_declarations,
+                        '@keyframes': self._generate_keyframes_declarations
                     }
-                    group = label_map[group_label]
+                    group = label_map[group_label](ruleset, group_label)
                 except KeyError:
                     raise MissingAtKeywordType
             else:
