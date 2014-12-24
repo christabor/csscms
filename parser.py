@@ -237,6 +237,8 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     TODO: tests!
 
+    TODO: make parser and set default values for ruleset.media_query and ruleset.keyframes
+
     TODO: implement boolean field for !important,
     important via `priority` property.
 
@@ -349,18 +351,14 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             raise MissingTokenType
 
     def _wrap_input_html(self, **kwargs):
-        """Wraps input/select, etc... with surrounding html,
-        custom or otherwise."""
+        """Wraps form field grouping with surrounding html"""
         if self.custom_input_html:
             # Allow arbitrary custom html, so long as the kwargs
             # match up the format kwargs -- otherwise error will be thrown.
-            return self.surrounding_html.format(
-                self.css_input_wrapper_class,
-                self.custom_input_html.format(**kwargs))
+            html = self.custom_input_html.format(**kwargs)
         else:
-            return self.surrounding_html.format(
-                self.css_input_wrapper_class,
-                self.default_input_html.format(**kwargs))
+            html = self.default_input_html.format(**kwargs)
+        return self.surrounding_html.format(self.css_input_wrapper_class, html)
 
     def _get_formfield_kwargs(self, tokens, prop, value_token):
         """Generates kwargs to be used by builder"""
