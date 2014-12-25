@@ -237,8 +237,6 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     TODO: tests!
 
-    TODO: make parser and set default values for ruleset.media_query and ruleset.keyframes
-
     TODO: implement boolean field for !important,
     important via `priority` property.
 
@@ -251,18 +249,13 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     TODO: docs, docstrings
 
-    TODO: handle font-weight numbers
-
-    TODO: handle @imports
-
     TODO: handle @keyframes
 
     TODO: accurately handle multiple transform declarations
 
     TODO: dropdown for non-numeric options, like some css func args
 
-    TODO: handle multiple value non-function
-    inputs (e.g. font: '', or background: '')
+    TODO: handle composite properties (e.g. font: '', or background: '')
 
     """
 
@@ -314,23 +307,24 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         except KeyError:
             return None
 
-    def _get_dropdown_html(self, values, name='', token=None):
+    def _get_dropdown_html(self, props, name='', token=None):
         """Takes name and value, then builds
         matching select > option html"""
-        # Accompanying input html required for some situations
+        # Accompanying input html required for some
+        # non-dropdown complementary fields
         non_dropdown_html = ''
         dropdown_html = '<select name="{}">'.format(name)
-        for value in values:
+        for prop in props:
             # One off cases where some value should be represented
             # by a different field type
-            if value in ['%', 'number', 'length', 'url', 'color',
-                         'background-color', 'x% y%', 'keyframename',
-                         'time', 'xpos ypos', 'x-axis', 'y-axis', 'z-axis']:
-                new_token_type = self._convert_odd_types(value)
-                non_dropdown_html += self._get_input_html(new_token_type, value, value=value)
+            if prop in ['%', 'number', 'length', 'url', 'color',
+                        'background-color', 'x% y%', 'keyframename',
+                        'time', 'xpos ypos', 'x-axis', 'y-axis', 'z-axis']:
+                new_token_type = self._convert_odd_types(prop)
+                non_dropdown_html += self._get_input_html(new_token_type, prop, value=prop)
             else:
                 # Build the /actual/ option html.
-                dropdown_html += self._get_input_html('OPTION', value, value=value)
+                dropdown_html += self._get_input_html('OPTION', prop, value=prop)
         dropdown_html += '</select>'
         return (non_dropdown_html + (
             '<em class="or-divider">or</em>'
@@ -479,11 +473,13 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         return self
 
     def save(self, filename):
-        if not self._generated_data:
+        if self._generated_data is None:
             print 'No data has been generated yet!'
+            return
         with open(filename, 'w') as newfile:
             newfile.write(self._generated_data)
             newfile.write('\n')
+            newfile.close()
 
 
 if DEBUG:
