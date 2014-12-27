@@ -293,10 +293,10 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         self.parser = tinycss.make_parser('page3')
         self.stylesheet = self.parser.parse_stylesheet_file(filename)
         self.surrounding_html = '<div class="{}">{}</div>'
-        self.input_container_html = ('<div class="selector-group">\n'
-                                     '<span class="selector-label">'
-                                     '{} {}</span>\n{code}</div>\n')
-        self.default_input_html = ('<label>\n<em>{name}</em>'
+        self.container_html = ('<div class="selector-group">\n'
+                               '<span class="selector-label">'
+                               '{selector}</span> {}\n{code}{}</div>\n')
+        self.default_input_html = ('<label>\n<em>{name}:</em>'
                                    '\n{input_html}\n</label>\n')
 
     def _strip_quotes(self, val):
@@ -486,7 +486,9 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             # Convert lists to actual html
             sel_name = ', <br>'.join(group['selector'].split(','))
             code = ' '.join(group['inputs'])
-            html_inputs.append(self.input_container_html.format(sel_name, '{...}', code=code))
+            html_inputs.append(
+                self.container_html.format(
+                    '{', '}', selector=sel_name, code=code))
         # Join all data and populate global property
         self._generated_data = ''.join(html_inputs)
         return self
