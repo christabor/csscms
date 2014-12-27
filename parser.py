@@ -22,6 +22,7 @@ css_opts = {
     'odd_props': [
         '%', 'number', 'length', 'url', 'color', 'background-color',
         'x% y%', 'keyframename', 'time', 'xpos ypos',
+        'h-shadow', 'v-shadow', 'blur',
         'x-axis', 'y-axis', 'z-axis'
     ],
     'composites': [
@@ -266,11 +267,12 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     """
 
-    def __init__(self, filename, custom_input_html=None):
+    def __init__(self, filename, custom_input_html=None, show_empty=False):
         self.use_value = True
         self._generated_data = None
         self.css_input_wrapper_class = 'css-func'
         self.unwanted_props = []
+        self.show_empty_declarations = show_empty
         self.custom_input_html = custom_input_html
         self.parser = tinycss.make_parser('page3')
         self.stylesheet = self.parser.parse_stylesheet_file(filename)
@@ -306,6 +308,9 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             'xpos ypos': 'INTEGER',
             'time': 'FLOAT',
             'url': 'URI',
+            'h-shadow': 'INTEGER',
+            'v-shadow': 'INTEGER',
+            'blur': 'INTEGER',
             'x-axis': 'INTEGER',
             'y-axis': 'INTEGER',
             'z-axis': 'INTEGER',
@@ -450,7 +455,7 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                 # Add the final rendered html + labels, etc
                 # Only append properties that could be
                 # rendered as form fields
-                if html is not None:
+                if html or self.show_empty_declarations:
                     group['inputs'].append(
                         self._wrap_input_html(
                             **{'name': prop_name, 'input_html': html}))
