@@ -273,6 +273,20 @@
     background: url(foobar.jpg);
 }
 
+/* Composite properties */
+
+.composite {
+    /* http://www.impressivewebs.com/a-primer-on-the-css-font-shorthand-property/ */
+    font: italic small-caps normal 13px/150% Arial, Helvetica, sans-serif;
+    background: transparent url(img/foobar.jpg) no-repeat 10% 10%;
+}
+
+/* important properties */
+
+.very-important-stuff {
+    background-color: red !important;
+}
+
 /* Media queries */
 
 @media screen, and (max-width: 480px) {

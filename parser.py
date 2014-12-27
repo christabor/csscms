@@ -75,7 +75,7 @@ css_opts = {
         'UNICODE-RANGE': '',
         'FUNCTION': '',
         'OPTION': '<option value="{value}" {selected}>{placeholder}</option>',
-        'BOOLEAN': '<input type="checkbox" checked={is_checked}>',
+        'BOOLEAN': '<input type="checkbox" checked={checked}>',
         'DIMENSION': '<input type="number" name="{name}"  placeholder="{placeholder}">',
         'STRING': '<input type="text" name="{name}" placeholder="{placeholder}">',
         'DELIM': '',
@@ -261,25 +261,15 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
     """
     Convention: all public methods return `self` to allow for chaining.
 
-    TODO: tests!
-
-    TODO: implement boolean field for !important,
-    important via `priority` property.
-
-    TODO: better way to handle combos of select dropdowns AND input fields
-    (e.g. image css props, that require url() or default options...)
-
     TODO: handle @media (queries)
 
     TODO: handle `inset` option
 
     TODO: docs, docstrings
 
-    TODO: handle @keyframes
+    TODO: handle @keyframes above and beyond tinycss, with custom animations
 
     TODO: accurately handle multiple transform declarations
-
-    TODO: handle composite properties (e.g. font: '', or background: '')
 
     """
 
@@ -365,8 +355,8 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             html = self.default_input_html.format(**kwargs)
         return self.surrounding_html.format(self.css_input_wrapper_class, html)
 
-    def _get_form_html_data(self, token, prop_name):
-        """Generates kwargs data to be used by html builder"""
+    def _get_form_html_data(self, token, prop_name, priority=None):
+        """Generates form html to be used by html builder"""
         # Normalize single vs multiple valued declarations
         try:
             # Token props:
@@ -382,6 +372,10 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             if DEBUG:
                 print '[ERROR] Property: "{}"'.format(prop_name)
             return ''
+        if priority:
+            html += '<label>Important? {}</label>'.format(self._get_input_html(
+                'BOOLEAN', 'important', 'important', checked='checked'))
+            print html
         return html
 
     def _get_at_keyword_type(self, ruleset):
@@ -438,17 +432,20 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             prop_name = declaration.name
             if self._is_valid_css_property(prop_name):
                 # Tokens, e.g. "[2px, solid, #4444]"
+                priority = declaration.priority
                 for token in declaration.value:
                     try:
                         html = ''
                         for sub_token in token.content:
-                            html += self._get_form_html_data(sub_token, prop_name)
+                            html += self._get_form_html_data(
+                                sub_token, prop_name, priority=priority)
                         # Update prop_name to add function name for more context
                         if token.function_name:
                             prop_name = '{} ({})'.format(
                                 prop_name, token.function_name)
                     except AttributeError:
-                        html = self._get_form_html_data(token, prop_name)
+                        html = self._get_form_html_data(
+                            token, prop_name, priority=priority)
                 # Add the final rendered html + labels, etc
                 # Only append properties that could be
                 # rendered as form fields
