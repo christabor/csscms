@@ -19,12 +19,28 @@ css_opts = {
         'scale', 'scaleX', 'scaleY', 'scaleZ', 'scale3d',
         'rotate', 'rotateX', 'rotateY', 'rotateZ', 'rotate3d'
     ],
-    'odd_props': [
-        '%', 'number', 'length', 'url', 'color', 'background-color',
-        'x% y%', 'keyframename', 'time', 'xpos ypos',
-        'h-shadow', 'v-shadow', 'blur',
-        'x-axis', 'y-axis', 'z-axis'
-    ],
+    'odd_props': {
+        '%': 'PERCENTAGE',
+        'number': 'INTEGER',
+        'length-v': 'INTEGER',
+        'length-h': 'INTEGER',
+        'length': 'INTEGER',
+        'color': 'HASH',
+        'background-color': 'HASH',
+        'x%': 'PERCENTAGE',
+        'y%': 'PERCENTAGE',
+        'xpos': 'INTEGER',
+        'ypos': 'INTEGER',
+        'time': 'FLOAT',
+        'url': 'URI',
+        'h-shadow': 'INTEGER',
+        'v-shadow': 'INTEGER',
+        'blur': 'INTEGER',
+        'x-axis': 'INTEGER',
+        'y-axis': 'INTEGER',
+        'z-axis': 'INTEGER',
+        'keyframename': 'STRING',
+    },
     'composites': [
         'font', 'background'
     ],
@@ -296,28 +312,8 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         return val
 
     def _convert_odd_types(self, value):
-        odd_props = {
-            '%': 'PERCENTAGE',
-            'number': 'INTEGER',
-            'length length length length': 'INTEGER',
-            'length length': 'INTEGER',
-            'length': 'INTEGER',
-            'color': 'HASH',
-            'background-color': 'HASH',
-            'x% y%': 'PERCENTAGE',
-            'xpos ypos': 'INTEGER',
-            'time': 'FLOAT',
-            'url': 'URI',
-            'h-shadow': 'INTEGER',
-            'v-shadow': 'INTEGER',
-            'blur': 'INTEGER',
-            'x-axis': 'INTEGER',
-            'y-axis': 'INTEGER',
-            'z-axis': 'INTEGER',
-            'keyframename': 'STRING',
-        }
         try:
-            return odd_props[value]
+            return css_opts['odd_props'][value]
         except KeyError:
             return None
 
@@ -333,8 +329,9 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             # by a different field type
             if prop in css_opts['odd_props']:
                 new_token_type = self._convert_odd_types(prop)
-                non_dropdown_html += self._get_input_html(
-                    new_token_type, prop, prop)
+                if new_token_type is not None:
+                    non_dropdown_html += self._get_input_html(
+                        new_token_type, prop, prop)
             else:
                 # Build the /actual/ option html.
                 dropdown_html += self._get_input_html(
