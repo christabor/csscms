@@ -1,5 +1,6 @@
 import tinycss
 import css_properties
+from pprint import pprint
 
 
 DEBUG = True
@@ -17,6 +18,14 @@ css_opts = {
         'translate', 'translateX', 'translateY', 'translateZ', 'translate3d',
         'scale', 'scaleX', 'scaleY', 'scaleZ', 'scale3d',
         'rotate', 'rotateX', 'rotateY', 'rotateZ', 'rotate3d'
+    ],
+    'odd_props': [
+        '%', 'number', 'length', 'url', 'color', 'background-color',
+        'x% y%', 'keyframename', 'time', 'xpos ypos',
+        'x-axis', 'y-axis', 'z-axis'
+    ],
+    'composites': [
+        'font', 'background'
     ],
     # @import types
     'media_types': [
@@ -48,7 +57,7 @@ css_opts = {
         'URI': '<input type="file" name="{name}">',
         'UNICODE-RANGE': '',
         'FUNCTION': '',
-        'OPTION': '<option value="{value}">{placeholder}</option>',
+        'OPTION': '<option value="{value}" {selected}>{placeholder}</option>',
         'BOOLEAN': '<input type="checkbox" checked={is_checked}>',
         'DIMENSION': '<input type="number" name="{name}"  placeholder="{placeholder}">',
         'STRING': '<input type="text" name="{name}" placeholder="{placeholder}">',
@@ -253,8 +262,6 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     TODO: accurately handle multiple transform declarations
 
-    TODO: dropdown for non-numeric options, like some css func args
-
     TODO: handle composite properties (e.g. font: '', or background: '')
 
     """
@@ -278,6 +285,8 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         """Normalize properties with beginning or
         trailing quotations, like `content: ""`
         """
+        if type(val) != 'str':
+            return val
         if val.startswith('"'):
             val = val[1:]
         if val.endswith('"'):
@@ -317,20 +326,20 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         for prop in props:
             # One off cases where some value should be represented
             # by a different field type
-            if prop in ['%', 'number', 'length', 'url', 'color',
-                        'background-color', 'x% y%', 'keyframename',
-                        'time', 'xpos ypos', 'x-axis', 'y-axis', 'z-axis']:
+            if prop in css_opts['odd_props']:
                 new_token_type = self._convert_odd_types(prop)
-                non_dropdown_html += self._get_input_html(new_token_type, prop, value=prop)
+                non_dropdown_html += self._get_input_html(
+                    new_token_type, prop, prop)
             else:
                 # Build the /actual/ option html.
-                dropdown_html += self._get_input_html('OPTION', prop, value=prop)
+                dropdown_html += self._get_input_html(
+                    'OPTION', prop, prop, selected='')
         dropdown_html += '</select>'
         return (non_dropdown_html + (
             '<em class="or-divider">or</em>'
             if non_dropdown_html else '') + dropdown_html)
 
-    def _get_input_html(self, token_type, prop, value=''):
+    def _get_input_html(self, token_type, prop, value, **kwargs):
         value = self._strip_quotes(value)
         # Functions need to be parsed a second time, separately.
         try:
@@ -339,7 +348,7 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             else:
                 input_html = css_opts['types'][token_type].format(
                     name=prop, placeholder=value,
-                    value=value if self.use_value else '')
+                    value=value if self.use_value else '', **kwargs)
             return input_html
         except KeyError:
             raise MissingTokenType
@@ -354,25 +363,24 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             html = self.default_input_html.format(**kwargs)
         return self.surrounding_html.format(self.css_input_wrapper_class, html)
 
-    def _get_formfield_kwargs(self, tokens, prop, value_token):
-        """Generates kwargs to be used by builder"""
+    def _get_form_html_data(self, token, prop_name):
+        """Generates kwargs data to be used by html builder"""
+        # Normalize single vs multiple valued declarations
         try:
-            prop_key = css_properties.props[prop]
-            is_dropdown = prop_key['dropdown']
-            token_type = tokens.type
-            if is_dropdown:
+            # Token props:
+            # 'as_css', 'column', 'is_container', 'line', 'type', 'unit', 'value'
+            prop_key = css_properties.rules[prop_name]
+            # Only overwrite string if it's not container type
+            if prop_key['dropdown']:
                 html = self._get_dropdown_html(
-                    prop_key['props'], name=prop, token=token_type)
+                    prop_key['values'], name=prop_name, token=token.type)
             else:
-                html = self._get_input_html(token_type, prop, value=value_token)
+                html = self._get_input_html(token.type, prop_name, token.value)
         except KeyError:
             if DEBUG:
-                print '[ERROR] Property: "{}"'.format(prop)
-            return None
-        return {
-            'name': prop,
-            'input_html': html
-        }
+                print '[ERROR] Property: "{}"'.format(prop_name)
+            return ''
+        return html
 
     def _get_at_keyword_type(self, ruleset):
         try:
@@ -412,7 +420,7 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                 kwargs = {
                     'name': media_type,
                     'input_html': self._get_input_html(
-                        'URL', media_type, value=ruleset.uri)
+                        'URL', media_type, ruleset.uri)
                 }
                 group['inputs'].append(self._wrap_input_html(**kwargs))
         return group
@@ -428,15 +436,24 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
             prop_name = declaration.name
             if self._is_valid_css_property(prop_name):
                 # Tokens, e.g. "[2px, solid, #4444]"
-                for token_type in declaration.value:
-                    kwargs = self._get_formfield_kwargs(
-                        token_type, prop_name, token_type.as_css())
-                    # Add the final rendered html + labels, etc
-                    if kwargs is not None:
-                        # Only append properties that could be
-                        # rendered as form fields
-                        group['inputs'].append(
-                            self._wrap_input_html(**kwargs))
+                for token in declaration.value:
+                    try:
+                        html = ''
+                        for sub_token in token.content:
+                            html += self._get_form_html_data(sub_token, prop_name)
+                        # Update prop_name to add function name for more context
+                        if token.function_name:
+                            prop_name = '{} ({})'.format(
+                                prop_name, token.function_name)
+                    except AttributeError:
+                        html = self._get_form_html_data(token, prop_name)
+                # Add the final rendered html + labels, etc
+                # Only append properties that could be
+                # rendered as form fields
+                if html is not None:
+                    group['inputs'].append(
+                        self._wrap_input_html(
+                            **{'name': prop_name, 'input_html': html}))
         return group
 
     def generate(self):
