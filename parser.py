@@ -376,7 +376,6 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
         if priority:
             html += '<label>Important? {}</label>'.format(self._get_input_html(
                 'BOOLEAN', 'important', 'important', checked='checked'))
-            print html
         return html
 
     def _get_at_keyword_type(self, ruleset):
