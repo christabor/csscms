@@ -410,16 +410,14 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
         return inputs
 
     def _generate_import_declarations(self, ruleset):
-        inputs = []
-        for media_type in ruleset.media:
-            # All media types are basic strings except for url() declarations
-            if media_type in css_opts['media_types']:
-                kwargs = {
-                    'name': media_type,
-                    'input_html': self._get_input_html(
-                        'URL', media_type, ruleset.uri)
-                }
-                inputs.append(self._wrap_input_html(**kwargs))
+        inputs, name = [], 'url ({})'.format(ruleset.uri)
+        input_html = self._get_input_html('URI', ('import-url'), name)
+        kwargs = {
+            'name': name,
+            'value': name,
+            'input_html': input_html
+        }
+        inputs.append(self._wrap_input_html(**kwargs))
         return inputs
 
     def _generate_regular_declarations(self, ruleset):
