@@ -1,6 +1,5 @@
-import tinycss
+from tinycss.page3 import CSSPage3Parser
 import css_properties
-from pprint import pprint
 
 
 DEBUG = True
@@ -256,12 +255,10 @@ class ValidationHelpersMixin():
             return False
 
 
-class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
+class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
 
     """
     Convention: all public methods return `self` to allow for chaining.
-
-    TODO: handle @media (queries)
 
     TODO: handle `inset` option
 
@@ -280,14 +277,17 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
         self.unwanted_props = []
         self.show_empty_declarations = show_empty
         self.custom_input_html = custom_input_html
-        self.parser = tinycss.make_parser('page3')
-        self.stylesheet = self.parser.parse_stylesheet_file(filename)
+        self.stylesheet = self.parse_stylesheet_file(filename)
         self.surrounding_html = '<div class="{}">{}</div>'
         self.container_html = ('<div class="selector-group">\n'
                                '<span class="selector-label">'
                                '{selector}</span> {}\n{code}{}</div>\n')
         self.default_input_html = ('<label>\n<em>{name}:</em>'
                                    '\n{input_html}\n</label>\n')
+
+    def parse_media(self, tokens):
+        """Private method overridden from tinycss."""
+        self.mediaquery_tokens = [f for f in tokens if f.type == 'IDENT']
 
     def _strip_quotes(self, val):
         """Normalize properties with beginning or
@@ -380,36 +380,38 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
 
     def _get_at_keyword_type(self, ruleset):
         try:
-            if ruleset.media:
-                return 'import'
-            elif ruleset.media_query:
+            if ruleset.rules:
                 return 'media'
+            elif ruleset.media:
+                return 'import'
             elif ruleset.keyframes:
                 return 'keyframes'
+            else:
+                return ''
         except AttributeError:
             return ''
 
-    def _generate_keyframes_declarations(self, ruleset, selector):
+    def _generate_keyframes_declarations(self, ruleset):
         # TODO
-        group = {
-            'selector': selector,
-            'inputs': []
-        }
-        return group
+        return []
 
-    def _generate_mediaquery_declarations(self, ruleset, selector):
-        # TODO
-        group = {
-            'selector': selector,
-            'inputs': []
-        }
-        return group
+    def _generate_mediaquery_declarations(self, ruleset):
+        inputs = []
+        for rule in ruleset.rules:
+            sub_inputs = self._generate_regular_declarations(rule)
+            # Re-build parsed selector
+            selector = ''.join([s.value for s in rule.selector])
+            kwargs = {
+                'name': selector,
+                'input_html': ''.join(sub_inputs)
+            }
+            # Process all sub rules for every individual "parent" media rule.
+            inputs.append(self._wrap_input_html(**kwargs))
+        # print group
+        return inputs
 
-    def _generate_import_declarations(self, ruleset, selector):
-        group = {
-            'selector': selector,
-            'inputs': []
-        }
+    def _generate_import_declarations(self, ruleset):
+        inputs = []
         for media_type in ruleset.media:
             # All media types are basic strings except for url() declarations
             if media_type in css_opts['media_types']:
@@ -418,14 +420,11 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                     'input_html': self._get_input_html(
                         'URL', media_type, ruleset.uri)
                 }
-                group['inputs'].append(self._wrap_input_html(**kwargs))
-        return group
+                inputs.append(self._wrap_input_html(**kwargs))
+        return inputs
 
-    def _generate_regular_declarations(self, ruleset, selector):
-        group = {
-            'selector': selector,
-            'inputs': []
-        }
+    def _generate_regular_declarations(self, ruleset):
+        inputs = []
         # All declarations in the selector
         for declaration in ruleset.declarations:
             # Property, e.g. background-color
@@ -450,10 +449,10 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                 # Only append properties that could be
                 # rendered as form fields
                 if html or self.show_empty_declarations:
-                    group['inputs'].append(
+                    inputs.append(
                         self._wrap_input_html(
                             **{'name': prop_name, 'input_html': html}))
-        return group
+        return inputs
 
     def generate(self):
         """Generates all html from the available stylesheet
@@ -472,20 +471,20 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin):
                         '@media': self._generate_mediaquery_declarations,
                         '@keyframes': self._generate_keyframes_declarations
                     }
-                    group = label_map[group_label](ruleset, group_label)
+                    input_html = label_map[group_label](ruleset)
                 except KeyError:
                     raise MissingAtKeywordType
             else:
                 # The group or single selector:
                 # .foo, .bar, .foo.bar {}
                 group_label = ruleset.selector.as_css()
-                group = self._generate_regular_declarations(ruleset, group_label)
+                input_html = self._generate_regular_declarations(ruleset)
             # Convert lists to actual html
-            sel_name = ', <br>'.join(group['selector'].split(','))
-            code = ' '.join(group['inputs'])
+            selector = ', <br>'.join(group_label.split(','))
+            code = ' '.join(input_html)
             html_inputs.append(
                 self.container_html.format(
-                    '{', '}', selector=sel_name, code=code))
+                    '{', '}', selector=selector, code=code))
         # Join all data and populate global property
         self._generated_data = ''.join(html_inputs)
         return self
