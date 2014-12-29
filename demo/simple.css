@@ -287,6 +287,15 @@
     background-color: red !important;
 }
 
+/* Media queries without "container" tokens */
+
+@media screen {
+    .media-simple-test {
+        width: 100%;
+        color: red;
+    }
+}
+
 /* Media queries */
 
 @media screen, and (max-width: 480px) {
