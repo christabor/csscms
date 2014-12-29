@@ -287,7 +287,8 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
 
     def parse_media(self, tokens):
         """Private method overridden from tinycss."""
-        self.mediaquery_tokens = [f for f in tokens if f.type == 'IDENT']
+        mediaquery_tokens = [f for f in tokens if f.type == 'IDENT']
+        return mediaquery_tokens
 
     def _strip_quotes(self, val):
         """Normalize properties with beginning or
@@ -380,16 +381,16 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
 
     def _get_at_keyword_type(self, ruleset):
         try:
+            if ruleset.uri or ruleset.media:
+                return 'import'
             if ruleset.rules:
                 return 'media'
-            elif ruleset.media:
-                return 'import'
-            elif ruleset.keyframes:
+            if ruleset.keyframes:
                 return 'keyframes'
             else:
-                return ''
+                return ruleset.at_keyword.replace('@', '')
         except AttributeError:
-            return ''
+            return ruleset.at_keyword.replace('@', '')
 
     def _generate_keyframes_declarations(self, ruleset):
         # TODO
@@ -407,7 +408,6 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
             }
             # Process all sub rules for every individual "parent" media rule.
             inputs.append(self._wrap_input_html(**kwargs))
-        # print group
         return inputs
 
     def _generate_import_declarations(self, ruleset):
@@ -454,6 +454,27 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
                             **{'name': prop_name, 'input_html': html}))
         return inputs
 
+    def _get_generator(self, ruleset, at_keyword=False):
+        if at_keyword:
+            # e.g. @import url('foo.css') projection, tv;
+            group_label = '@' + self._get_at_keyword_type(ruleset)
+            # Drill down further to determine the @ keyword type
+            try:
+                label_map = {
+                    '@import': self._generate_import_declarations,
+                    '@media': self._generate_mediaquery_declarations,
+                    '@keyframes': self._generate_keyframes_declarations
+                }
+                active_func = label_map[group_label]
+            except KeyError:
+                raise MissingAtKeywordType
+        else:
+            # The group or single selector:
+            # .foo, .bar, .foo.bar {}
+            group_label = ruleset.selector.as_css()
+            active_func = self._generate_regular_declarations
+        return group_label, active_func
+
     def generate(self):
         """Generates all html from the available stylesheet
         reference exposed by init function."""
@@ -461,25 +482,9 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
         for ruleset in self.stylesheet.rules:
             group_label = None
             is_at_keyword = ruleset.at_keyword is not None
-            if is_at_keyword:
-                # e.g. @import url('foo.css') projection, tv;
-                group_label = '@' + self._get_at_keyword_type(ruleset)
-                # Drill down further to determine the @ keyword type
-                try:
-                    label_map = {
-                        '@import': self._generate_import_declarations,
-                        '@media': self._generate_mediaquery_declarations,
-                        '@keyframes': self._generate_keyframes_declarations
-                    }
-                    input_html = label_map[group_label](ruleset)
-                except KeyError:
-                    raise MissingAtKeywordType
-            else:
-                # The group or single selector:
-                # .foo, .bar, .foo.bar {}
-                group_label = ruleset.selector.as_css()
-                input_html = self._generate_regular_declarations(ruleset)
-            # Convert lists to actual html
+            group_label, active_func = self._get_generator(
+                ruleset, at_keyword=is_at_keyword)
+            input_html = active_func(ruleset)
             selector = ', <br>'.join(group_label.split(','))
             code = ' '.join(input_html)
             html_inputs.append(
