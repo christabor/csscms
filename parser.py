@@ -299,7 +299,7 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
             rule.keyframes = True
             return rule
         # Parse the rest normally
-        super(InputBuilder, self).parse_at_rule(
+        return super(InputBuilder, self).parse_at_rule(
             rule, previous_rules, errors, context)
 
     def _strip_quotes(self, val):
