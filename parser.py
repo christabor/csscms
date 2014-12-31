@@ -278,6 +278,8 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
         self.show_empty_declarations = show_empty
         self.custom_input_html = custom_input_html
         self.stylesheet = self.parse_stylesheet_file(filename)
+        self.animation_group_html = ('<div class="animation-group">'
+                                     '{percentages}</div>')
         self.surrounding_html = '<div class="{}">{}</div>'
         self.container_html = ('<div class="selector-group">\n'
                                '<span class="selector-label">'
@@ -289,6 +291,16 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
         """Private method overridden from tinycss."""
         mediaquery_tokens = [f for f in tokens if f.type == 'IDENT']
         return mediaquery_tokens
+
+    def parse_at_rule(self, rule, previous_rules, errors, context):
+        """Inject a custom property for filtering purposes.
+        This method overrides the private tinycss method."""
+        if rule.at_keyword == '@keyframes':
+            rule.keyframes = True
+            return rule
+        # Parse the rest normally
+        super(InputBuilder, self).parse_at_rule(
+            rule, previous_rules, errors, context)
 
     def _strip_quotes(self, val):
         """Normalize properties with beginning or
@@ -391,9 +403,83 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
         except AttributeError:
             return ruleset.at_keyword.replace('@', '')
 
+    def _group_keyframe_tokens(self, tokens):
+        """Groups a list of tokens from tinycss by brackets and contained css.
+        Since all tokens come in as one list, we need to group by individual
+        percentage declarations to allow differentiating between groups.
+            @keyframes myanimation {
+                10%, 20% {}
+                50, 60% {}
+                100% {}
+            }
+        """
+        token_groups = {}
+        current_group = 0
+        for token in tokens:
+            # Skip some pieces that are unnecessary,
+            # like empty strings or commas/fragments
+            if token.as_css()[0] not in [',', ' ']:
+                try:
+                    if token.as_css().startswith('{'):
+                        token_groups[current_group]['rules'].append(token)
+                    else:
+                        token_groups[current_group]['percentages'].append(token)
+                except KeyError:
+                    token_groups[current_group] = {
+                        'percentages': [],
+                        'rules': []
+                    }
+            # Move to the next set of declarations
+            if token.as_css().startswith('{'):
+                current_group += 1
+        return token_groups
+
     def _generate_keyframes_declarations(self, ruleset):
-        # TODO
-        return []
+        inputs = []
+        junk_types = ['DELIM', 'S', ':', ';']
+        token_groups = self._group_keyframe_tokens(ruleset.body)
+        for k, token_group in token_groups.iteritems():
+            for token in token_group['rules']:
+                percentages = ', '.join(
+                    [t.as_css() for t in token_group['percentages']])
+                # All tokens are container tokens
+                if token.is_container:
+                    # Parse container tokens
+                    sub_tokens = [t for t in token.content if t.type
+                                  not in junk_types]
+                    for sub_token in sub_tokens:
+                        if sub_token.type == 'FUNCTION':
+                            function_tokens = [t for t in sub_token.content
+                                               if t.type not in junk_types]
+                            for k, function_token in enumerate(function_tokens):
+                                label = '{} ({})'.format(
+                                    sub_token.function_name, k)
+                                name = '{}_{}'.format(
+                                    sub_token.function_name, k)
+                                input_html = self._get_input_html(
+                                    function_token.type, name,
+                                    function_token.as_css())
+                                kwargs = {
+                                    'name': label,
+                                    'value': function_token.as_css(),
+                                    'input_html': input_html
+                                }
+                                inputs.append(self._wrap_input_html(**kwargs))
+                        else:
+                            input_html = self._get_input_html(
+                                sub_token.type, sub_token.value,
+                                sub_token.as_css())
+                            kwargs = {
+                                'name': sub_token.value,
+                                'value': sub_token.as_css(),
+                                'input_html': input_html
+                            }
+                            html = '{} {}'.format(
+                                self.animation_group_html.format(
+                                    percentages=percentages),
+                                self._wrap_input_html(**kwargs))
+                            inputs.append(html)
+        return inputs
 
     def _generate_mediaquery_declarations(self, ruleset):
         inputs = []
@@ -465,6 +551,9 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
                 active_func = label_map[group_label]
             except KeyError:
                 raise MissingAtKeywordType
+            # Customize group label for keyframes
+            if group_label == '@keyframes':
+                group_label += ' ' + ruleset.head[0].as_css()
         else:
             # The group or single selector:
             # .foo, .bar, .foo.bar {}
