@@ -2,4 +2,4 @@ CSSCMS - CSS `Content Management System`
 
 A declarative approach to generating HTML GUIs for editing CSS properties.
 
-A WIP, but feel free to look around. Still powerful enough to handle most css cases, but it's not robust enough to be considered "complete".
+A few small todos left, but the core functionality is there. All major css types have been tested with parsing (see the demo css for examples of test inputs).

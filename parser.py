@@ -264,8 +264,6 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
 
     TODO: docs, docstrings
 
-    TODO: handle @keyframes above and beyond tinycss, with custom animations
-
     TODO: accurately handle multiple transform declarations
 
     """
