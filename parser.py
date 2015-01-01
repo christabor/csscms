@@ -395,16 +395,17 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                 # Tokens, e.g. "[2px, solid, #4444]"
                 priority = declaration.priority
                 for token in declaration.value:
-                    try:
+                    if hasattr(token, 'content'):
                         html = ''
                         for sub_token in token.content:
                             html += self._get_form_html_data(
                                 sub_token, prop_name, priority=priority)
-                        # Update prop_name to add function name for more context
+                        # Update prop_name to add function
+                        # name for more context
                         if token.function_name:
                             prop_name = '{} ({})'.format(
                                 prop_name, token.function_name)
-                    except AttributeError:
+                    else:
                         html = self._get_form_html_data(
                             token, prop_name, priority=priority)
                 # Add the final rendered html + labels, etc
