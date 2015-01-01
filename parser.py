@@ -148,8 +148,6 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
     """
     Convention: all public methods return `self` to allow for chaining.
 
-    TODO: handle `inset` option
-
     TODO: docs, docstrings
 
     """
