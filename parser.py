@@ -95,125 +95,6 @@ class MissingAtKeywordType(Exception):
             ' ').join(css_opts['at_types']))
 
 
-class CSSParserMixin():
-
-    """Custom parsing beyond that of tinycss"""
-
-    def _parse_gradient(self, function, grad_type):
-        _inputs = []
-        function = function.replace(
-            grad_type + '(', '').replace(')', '').split(' ')
-        for token in function:
-            token = token.replace(' ', '').split(',')
-            for k, sub_token in enumerate(token):
-                if self._is_percentage(sub_token):
-                    label = '{}-percent-{}'.format(grad_type, k)
-                    _inputs.append(
-                        [label, css_opts['types']['PERCENTAGE'].format(
-                            name=label,
-                            placeholder=sub_token[:-1])])
-                elif self._is_hex(sub_token):
-                    label = '{}-hex-{}'.format(grad_type, k)
-                    _inputs.append(
-                        [label, css_opts['types']['HASH'].format(
-                            name=label,
-                            placeholder=sub_token)])
-        return _inputs
-
-    def _parse_rgb(self, function):
-        _inputs = []
-        function = function.replace('rgba(', '').replace(')', '').split(',')
-        _inputs.append(['red', css_opts['types']['RGBHSV'].format(
-            name='red', placeholder=function[0])])
-        _inputs.append(['green', css_opts['types']['RGBHSV'].format(
-            name='green', placeholder=function[1])])
-        _inputs.append(['blue', css_opts['types']['RGBHSV'].format(
-            name='blue', placeholder=function[2])])
-        return _inputs
-
-    def _parse_rgba(self, function):
-        _inputs = []
-        function = function.replace('rgba(', '').replace(')', '').split(',')
-        _inputs.append(['red', css_opts['types']['RGBHSV'].format(
-            name='red', placeholder=function[0])])
-        _inputs.append(['green', css_opts['types']['RGBHSV'].format(
-            name='green', placeholder=function[1])])
-        _inputs.append(['blue', css_opts['types']['RGBHSV'].format(
-            name='blue', placeholder=function[2])])
-        _inputs.append(['alpha', css_opts['types']['INTEGER'].format(
-            name='alpha', placeholder=function[3])])
-        return _inputs
-
-    def _parse_media_query(self, function):
-        # TODO
-        return ''
-        pass
-
-    def _parse_transform(self, function):
-        _inputs = []
-        function = function.replace('(', ' ').replace(')', ' ').split(' ')
-        for k, token in enumerate(function):
-            # Filter out transforms, until we can do selects/options TODO
-            input_html = ''
-            if token and token not in css_opts['xforms']:
-                token = token.replace(',', '')
-                kwargs = {'name': token, 'placeholder': token}
-                if self._is_float(token):
-                    input_html = css_opts['types']['FLOAT'].format(**kwargs)
-                elif token.endswith('px'):
-                    input_html = css_opts['types']['NUMBER'].format(**kwargs)
-                elif token.endswith('deg'):
-                    input_html = css_opts['types']['DEG'].format(**kwargs)
-                elif self._is_int(token):
-                    input_html = css_opts['types']['INTEGER'].format(**kwargs)
-                else:
-                    continue
-                # Add after to keep DRY
-                _inputs.append(['{}: #{}'.format(function[0], k), input_html])
-        return _inputs
-
-    def _parse_css_function_inputs(self, function):
-        """Parses arguments of a CSS function into their respective
-        matching inputs. Deviates from tinycss style because of necessary
-        substring parsing / matching.
-
-        e.g. rgba(255, 0, 0, 0.4) becomes:
-
-        <input type="number" min="0" max="255">
-        <input type="number" min="0" max="255">
-        <input type="number" min="0" max="1">
-        <input type="number" min="0" max="0.4">
-
-        or linear-gradient(top, #444 0%, #444 100%), becomes:
-
-        <select name="" id=""><option value="">...</option></select>
-        <input type="color">
-        <input type="number" min="0" max="100">
-        <input type="color">
-        <input type="number" min="0" max="100">
-
-        """
-        inputs, html = [], ''
-
-        if function.startswith('rgba'):
-            inputs += self._parse_rgba(function)
-        elif function.startswith('rgb'):
-            inputs += self._parse_rgb(function)
-        elif function.startswith('linear-gradient'):
-            inputs += self._parse_gradient(function, 'linear-gradient')
-        elif function.startswith('radial-gradient'):
-            inputs += self._parse_gradient(function, 'radial-gradient')
-        elif filter(lambda prop: function.startswith(prop), css_opts['xforms']):
-            inputs += self._parse_transform(function)
-
-        # Finally, build up individual surrounding labels + input
-        # for each input "argument"
-        for name, _input in inputs:
-            html += self.default_input_html.format(
-                name=name, input_html=_input)
-        return html
-
-
 class ValidationHelpersMixin():
 
     """Just some predicate filters..."""
@@ -255,7 +136,7 @@ class ValidationHelpersMixin():
             return False
 
 
-class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
+class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
 
     """
     Convention: all public methods return `self` to allow for chaining.
@@ -591,6 +472,6 @@ class InputBuilder(CSSParserMixin, ValidationHelpersMixin, CSSPage3Parser):
 if DEBUG:
     print '[DEBUG] Running demo'
     try:
-        InputBuilder('demo/simple.css').generate().save('demo/inputs.html')
+        InputBuilder('demo/test-inputs.css').generate().save('demo/inputs.html')
     except IOError:
         print '[ERROR] Could not load file or generate inputs'
