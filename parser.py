@@ -40,9 +40,12 @@ css_opts = {
         'z-axis': 'INTEGER',
         'keyframename': 'STRING',
     },
-    'composites': [
-        'font', 'background'
-    ],
+    # https://developer.mozilla.org/en-US/docs/Web/CSS/Shorthand_properties
+    'shorthand': ['background', 'font', 'margin', 'border', 'border-top',
+                  'border-right', 'border-bottom', 'border-left',
+                  'border-width', 'border-color', 'border-style',
+                  'transition', 'transform', 'padding',
+                  'list-style', 'border-radius'],
     # @import types
     'media_types': [
         'print', 'tv', 'all', 'screen', 'projection',
@@ -60,13 +63,13 @@ css_opts = {
     'types': {
         ':': '',
         'S': '',
-        'IDENT': '',
+        'IDENT': '<input type="text" value="{value}">',
         'RGBHSV': '<input type="number" min="0" max="255" name="{name}" placeholder="{placeholder}">',
-        'DEG': '<input type="number" min="0" max="360" name="{name}" placeholder="{placeholder}">',
+        'DEG': '<input type="number" min="0" name="{name}" placeholder="{placeholder}">',
         'FLOAT': '<input type="number" min="0" max="1" name="{name}" placeholder="{placeholder}">',
         'INTEGER': '<input type="number" name="{name}" placeholder="{placeholder}">',
         'NUMBER': '<input type="number" name="{name}" placeholder="{placeholder}">',
-        'PERCENTAGE': '<input type="number" min="0" max="100" name="{name}" value="{placeholder}">',
+        'PERCENTAGE': '<input type="number" min="0" name="{name}" value="{placeholder}">',
         'HASH': '<input type="color" value="{placeholder}" name="{name}">',
         'ATKEYWORD': '',
         'URL': '<input type="file" name="{name}">',
@@ -144,6 +147,12 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
     TODO: handle `inset` option
 
     TODO: docs, docstrings
+
+    TODO: fix issues with some media query parsing fields (max-width, etc..)
+
+    TODO: fix issues with gradient backgrounds
+
+    TODO: better enforcement of self._is_valid_css_property(prop_name)
 
     TODO: accurately handle multiple transform declarations
 
@@ -223,36 +232,32 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
             '<em class="or-divider">or</em>'
             if non_dropdown_html else '') + dropdown_html)
 
-    def _get_input_html(self, token_type, prop, value, **kwargs):
+    def _get_input_html(self, token_type, name, value, **kwargs):
         value = self._strip_quotes(value)
-        # Functions need to be parsed a second time, separately.
         try:
+            # Functions need to be parsed a second time, separately.
             if token_type == 'FUNCTION':
-                input_html = self._parse_css_function_inputs(value)
-            else:
-                input_html = css_opts['types'][token_type].format(
-                    name=prop, placeholder=value,
-                    value=value if self.use_value else '', **kwargs)
-            return input_html
+                return self._parse_css_function_inputs(value)
+            # Plain ol' direct mapping
+            return css_opts['types'][token_type].format(
+                name=name, placeholder=value,
+                value=value if self.use_value else '', **kwargs)
         except KeyError:
             raise MissingTokenType
 
     def _wrap_input_html(self, **kwargs):
         """Wraps form field grouping with surrounding html"""
-        if self.custom_input_html:
-            # Allow arbitrary custom html, so long as the kwargs
-            # match up the format kwargs -- otherwise error will be thrown.
-            html = self.custom_input_html.format(**kwargs)
-        else:
-            html = self.default_input_html.format(**kwargs)
+        # Allow arbitrary custom html, so long as the kwargs
+        # match up the format kwargs -- otherwise error will be thrown.
+        wrapper = (self.custom_input_html if self.custom_input_html
+                   else self.default_input_html)
+        html = wrapper.format(**kwargs)
         return self.surrounding_html.format(self.css_input_wrapper_class, html)
 
     def _get_form_html_data(self, token, prop_name, priority=None):
         """Generates form html to be used by html builder"""
         # Normalize single vs multiple valued declarations
         try:
-            # Token props:
-            # 'as_css', 'column', 'is_container', 'line', 'type', 'unit', 'value'
             prop_key = css_properties.rules[prop_name]
             # Only overwrite string if it's not container type
             if prop_key['dropdown']:
@@ -263,7 +268,7 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
         except KeyError:
             if DEBUG:
                 print '[ERROR] Property: "{}"'.format(prop_name)
-            return ''
+            html = self._get_input_html('IDENT', prop_name, token.value)
         if priority:
             html += '<label>Important? {}</label>'.format(self._get_input_html(
                 'BOOLEAN', 'important', 'important', checked='checked'))
@@ -392,22 +397,30 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
             # Property, e.g. background-color
             prop_name = declaration.name
             if self._is_valid_css_property(prop_name):
-                # Tokens, e.g. "[2px, solid, #4444]"
                 priority = declaration.priority
+                is_shorthand = prop_name in css_opts['shorthand']
+                html = ''
+                # Declaration tokens, e.g. "[2px, solid, #4444]"
                 for token in declaration.value:
                     if hasattr(token, 'content'):
-                        html = ''
                         for sub_token in token.content:
                             html += self._get_form_html_data(
                                 sub_token, prop_name, priority=priority)
-                        # Update prop_name to add function
-                        # name for more context
+                        # Update prop_name to add function for more context
                         if token.function_name:
                             prop_name = '{} ({})'.format(
                                 prop_name, token.function_name)
                     else:
-                        html = self._get_form_html_data(
-                            token, prop_name, priority=priority)
+                        if is_shorthand:
+                            # Note: shorthand properties are not grouped
+                            # with appropriate dropdowns
+                            # like single declarations, but rather, are
+                            # converted to plain text inputs.
+                            html += self._get_input_html(
+                                token.type, token.unit, token.value)
+                        else:
+                            html = self._get_form_html_data(
+                                token, prop_name, priority=priority)
                 # Add the final rendered html + labels, etc
                 # Only append properties that could be
                 # rendered as form fields
