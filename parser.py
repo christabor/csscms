@@ -106,7 +106,7 @@ class ValidationHelpersMixin():
 
     """Just some predicate filters..."""
 
-    def _is_valid_css_property(self, prop_name):
+    def _is_valid_css_declaration(self, prop_name):
         """Allows for arbitrary validation, with some sane defaults"""
         return (prop_name not in css_opts['bad_properties']
                 # No vendor prefixed props.
@@ -152,9 +152,9 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
 
     TODO: docs, docstrings
 
-    TODO: fix issues with some media query parsing fields (max-width, etc..)
+    TODO: fix a duplication transition issue
 
-    TODO: better enforcement of self._is_valid_css_property(prop_name)
+    TODO: fix issues with some media query parsing fields (max-width, etc..)
 
     TODO: accurately handle multiple transform declarations
 
@@ -234,7 +234,14 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
             '<em class="or-divider">or</em>'
             if non_dropdown_html else '') + dropdown_html)
 
+    def _is_cruft(self, token_type):
+        if token_type in ['S', 'DELIM']:
+            return True
+        return False
+
     def _get_input_html(self, token_type, name, value, **kwargs):
+        if self._is_cruft(token_type):
+            return ''
         value = self._strip_quotes(value)
         try:
             # Plain ol' direct mapping
@@ -256,6 +263,8 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
     def _get_form_html_data(
             self, token, prop_name, priority=None, shorthand=False):
         """Generates form html to be used by html builder"""
+        if self._is_cruft(token.type):
+            return ''
         # Normalize single vs multiple valued declarations
         try:
             prop_key = css_properties.rules[prop_name]
@@ -268,7 +277,15 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
         except KeyError:
             if DEBUG:
                 print '[ERROR] Property: "{}"'.format(prop_name)
-            html = self._get_input_html('IDENT', prop_name, token.value)
+            # Try to recover gracefully with the appropriate type
+            _css = token.as_css()
+            if _css.startswith('#'):
+                new_type = 'HASH'
+            elif _css.endswith('%'):
+                new_type = 'PERCENTAGE'
+            else:
+                new_type = 'IDENT'
+            html = self._get_input_html(new_type, prop_name, token.value)
         if priority:
             html += '<label>Important? {}</label>'.format(self._get_input_html(
                 'BOOLEAN', 'important', 'important', checked='checked'))
@@ -400,15 +417,20 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
         for declaration in ruleset.declarations:
             # Property, e.g. background-color
             prop_name = declaration.name
-            if self._is_valid_css_property(prop_name):
+            if self._is_valid_css_declaration(prop_name):
                 priority = declaration.priority
                 is_shorthand = prop_name in css_opts['shorthand']
                 # if is_shorthand and prop_name
                 html = ''
                 # Declaration tokens, e.g. "[2px, solid, #4444]"
                 for token in declaration.value:
+                    if self._is_cruft(token.type):
+                        continue
                     if hasattr(token, 'function_name'):
-                        if not self._is_valid_css_property(token.function_name):
+                        # Update prop_name to add function for more context
+                        prop_name = '{} ({})'.format(
+                            prop_name, token.function_name)
+                        if not self._is_valid_css_declaration(token.function_name):
                             continue
                         if token.function_name in css_opts['pseudo_shorthand']:
                             is_shorthand = True
@@ -417,10 +439,6 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                             html += self._get_form_html_data(
                                 sub_token, prop_name, priority=priority,
                                 shorthand=is_shorthand)
-                        # Update prop_name to add function for more context
-                        if token.function_name:
-                            prop_name = '{} ({})'.format(
-                                prop_name, token.function_name)
                     else:
                         if is_shorthand:
                             # Note: shorthand properties are not grouped
