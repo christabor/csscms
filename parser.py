@@ -46,6 +46,10 @@ css_opts = {
                   'border-width', 'border-color', 'border-style',
                   'transition', 'transform', 'padding',
                   'list-style', 'border-radius'],
+    # In some edge cases, even single declarations allow
+    # for css functions, which should be treated as
+    # shorthand declarations instead.
+    'pseudo_shorthand': ['linear-gradient', 'radial-gradient'],
     # @import types
     'media_types': [
         'print', 'tv', 'all', 'screen', 'projection',
@@ -148,6 +152,8 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
 
     TODO: docs, docstrings
 
+    TODO: fix some issues with duplicate entries when parsing transitions
+
     TODO: fix issues with some media query parsing fields (max-width, etc..)
 
     TODO: fix issues with gradient backgrounds
@@ -235,9 +241,6 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
     def _get_input_html(self, token_type, name, value, **kwargs):
         value = self._strip_quotes(value)
         try:
-            # Functions need to be parsed a second time, separately.
-            if token_type == 'FUNCTION':
-                return self._parse_css_function_inputs(value)
             # Plain ol' direct mapping
             return css_opts['types'][token_type].format(
                 name=name, placeholder=value,
@@ -254,13 +257,14 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
         html = wrapper.format(**kwargs)
         return self.surrounding_html.format(self.css_input_wrapper_class, html)
 
-    def _get_form_html_data(self, token, prop_name, priority=None):
+    def _get_form_html_data(
+            self, token, prop_name, priority=None, shorthand=False):
         """Generates form html to be used by html builder"""
         # Normalize single vs multiple valued declarations
         try:
             prop_key = css_properties.rules[prop_name]
             # Only overwrite string if it's not container type
-            if prop_key['dropdown']:
+            if not shorthand and prop_key['dropdown']:
                 html = self._get_dropdown_html(
                     prop_key['values'], name=prop_name, token=token.type)
             else:
@@ -399,13 +403,18 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
             if self._is_valid_css_property(prop_name):
                 priority = declaration.priority
                 is_shorthand = prop_name in css_opts['shorthand']
+                # if is_shorthand and prop_name
                 html = ''
                 # Declaration tokens, e.g. "[2px, solid, #4444]"
                 for token in declaration.value:
+                    if hasattr(token, 'function_name'):
+                        if token.function_name in css_opts['pseudo_shorthand']:
+                            is_shorthand = True
                     if hasattr(token, 'content'):
                         for sub_token in token.content:
                             html += self._get_form_html_data(
-                                sub_token, prop_name, priority=priority)
+                                sub_token, prop_name, priority=priority,
+                                shorthand=is_shorthand)
                         # Update prop_name to add function for more context
                         if token.function_name:
                             prop_name = '{} ({})'.format(
@@ -420,7 +429,8 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                                 token.type, token.unit, token.value)
                         else:
                             html = self._get_form_html_data(
-                                token, prop_name, priority=priority)
+                                token, prop_name, priority=priority,
+                                shorthand=is_shorthand)
                 # Add the final rendered html + labels, etc
                 # Only append properties that could be
                 # rendered as form fields
