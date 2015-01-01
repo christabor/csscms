@@ -273,9 +273,9 @@
     background: url(foobar.jpg);
 }
 
-/* Composite properties */
+/* Shorthand properties */
 
-.composite {
+.shorthand {
     /* http://www.impressivewebs.com/a-primer-on-the-css-font-shorthand-property/ */
     font: italic small-caps normal 13px/150% Arial, Helvetica, sans-serif;
     background: transparent url(img/foobar.jpg) no-repeat 10% 10%;
