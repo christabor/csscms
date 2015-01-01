@@ -152,11 +152,7 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
 
     TODO: docs, docstrings
 
-    TODO: fix some issues with duplicate entries when parsing transitions
-
     TODO: fix issues with some media query parsing fields (max-width, etc..)
-
-    TODO: fix issues with gradient backgrounds
 
     TODO: better enforcement of self._is_valid_css_property(prop_name)
 
@@ -412,6 +408,8 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                 # Declaration tokens, e.g. "[2px, solid, #4444]"
                 for token in declaration.value:
                     if hasattr(token, 'function_name'):
+                        if not self._is_valid_css_property(token.function_name):
+                            continue
                         if token.function_name in css_opts['pseudo_shorthand']:
                             is_shorthand = True
                     if hasattr(token, 'content'):
