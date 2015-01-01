@@ -42,7 +42,7 @@ css_opts = {
     },
     # https://developer.mozilla.org/en-US/docs/Web/CSS/Shorthand_properties
     'shorthand': ['background', 'font', 'margin', 'border', 'border-top',
-                  'border-right', 'border-bottom', 'border-left',
+                  'border-right', 'border-bottom', 'border-left', 'box-shadow',
                   'border-width', 'border-color', 'border-style',
                   'transition', 'transform', 'padding',
                   'list-style', 'border-radius'],
@@ -151,8 +151,6 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
     TODO: handle `inset` option
 
     TODO: docs, docstrings
-
-    TODO: accurately handle multiple transform declarations
 
     """
 
