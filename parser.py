@@ -152,8 +152,6 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
 
     TODO: docs, docstrings
 
-    TODO: fix a duplication transition issue
-
     TODO: fix issues with some media query parsing fields (max-width, etc..)
 
     TODO: accurately handle multiple transform declarations
@@ -339,7 +337,7 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
         inputs = []
         junk_types = ['DELIM', 'S', ':', ';']
         token_groups = self._group_keyframe_tokens(ruleset.body)
-        for k, token_group in token_groups.iteritems():
+        for _, token_group in token_groups.iteritems():
             for token in token_group['rules']:
                 percentages = ', '.join(
                     [t.as_css() for t in token_group['percentages']])
@@ -348,7 +346,9 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                     # Parse container tokens
                     sub_tokens = [t for t in token.content if t.type
                                   not in junk_types]
-                    for sub_token in sub_tokens:
+                    for key, sub_token in enumerate(sub_tokens):
+                        if not self._is_valid_css_declaration(sub_token.as_css()):
+                            continue
                         if sub_token.type == 'FUNCTION':
                             function_tokens = [t for t in sub_token.content
                                                if t.type not in junk_types]
@@ -368,6 +368,8 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                                 inputs.append(self._wrap_input_html(**kwargs))
                         else:
                             html = ''
+                            # Show, but don't create a field for
+                            # percentage groupings
                             if sub_token.type == 'IDENT':
                                 input_html = ''
                             else:
@@ -379,10 +381,14 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                                 'value': sub_token.as_css(),
                                 'input_html': input_html
                             }
+                            # Only show the percentage label once per group
+                            if key == 2:
+                                group_html = self.animation_group_html.format(
+                                    percentages=percentages)
+                            else:
+                                group_html = ''
                             html += '{} {}'.format(
-                                self.animation_group_html.format(
-                                    percentages=percentages),
-                                self._wrap_input_html(**kwargs))
+                                group_html, self._wrap_input_html(**kwargs))
                             inputs.append(html)
         return inputs
 
