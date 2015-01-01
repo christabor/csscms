@@ -152,8 +152,6 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
 
     TODO: docs, docstrings
 
-    TODO: fix issues with some media query parsing fields (max-width, etc..)
-
     TODO: accurately handle multiple transform declarations
 
     """
@@ -277,10 +275,14 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                 print '[ERROR] Property: "{}"'.format(prop_name)
             # Try to recover gracefully with the appropriate type
             _css = token.as_css()
-            if _css.startswith('#'):
+            if self._is_hex(_css):
                 new_type = 'HASH'
-            elif _css.endswith('%'):
+            elif self._is_percentage(_css):
                 new_type = 'PERCENTAGE'
+            elif self._is_float(_css):
+                new_type = 'FLOAT'
+            elif self._is_int(_css):
+                new_type = 'INTEGER'
             else:
                 new_type = 'IDENT'
             html = self._get_input_html(new_type, prop_name, token.value)
