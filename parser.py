@@ -331,7 +331,7 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                 percentages = ', '.join(
                     [t.as_css() for t in token_group['percentages']])
                 # All tokens are container tokens
-                if token.is_container:
+                if hasattr(token, 'is_container'):
                     # Parse container tokens
                     sub_tokens = [t for t in token.content if t.type
                                   not in junk_types]
@@ -354,15 +354,19 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                                 }
                                 inputs.append(self._wrap_input_html(**kwargs))
                         else:
-                            input_html = self._get_input_html(
-                                sub_token.type, sub_token.value,
-                                sub_token.as_css())
+                            html = ''
+                            if sub_token.type == 'IDENT':
+                                input_html = ''
+                            else:
+                                input_html = self._get_input_html(
+                                    sub_token.type, sub_token.value,
+                                    sub_token.as_css())
                             kwargs = {
                                 'name': sub_token.value,
                                 'value': sub_token.as_css(),
                                 'input_html': input_html
                             }
-                            html = '{} {}'.format(
+                            html += '{} {}'.format(
                                 self.animation_group_html.format(
                                     percentages=percentages),
                                 self._wrap_input_html(**kwargs))
