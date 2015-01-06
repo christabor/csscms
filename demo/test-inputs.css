@@ -241,14 +241,6 @@
     z-index: 999;
     zoom: 1;
 }
-.misc-test {
-    background-image: linear-gradient(to bottom, #604EB 0%, #201EFF 100%);
-    background: radial-gradient(ellipse at center, #1e5799 0%,#2989d8 50%,#207cca 51%,#7db9e8 100%);
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
-    visibility: hidden;
-    background: url(foobar.jpg);
-}
 .animated {
   -webkit-animation-duration: 1s;
           animation-duration: 1s;
