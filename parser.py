@@ -102,7 +102,7 @@ class MissingAtKeywordType(Exception):
             ' ').join(css_opts['at_types']))
 
 
-class ValidationHelpersMixin():
+class ValidationHelpersMixin:
 
     """Just some predicate filters..."""
 
