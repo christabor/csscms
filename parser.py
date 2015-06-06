@@ -92,14 +92,14 @@ css_opts = {
 
 class MissingTokenType(Exception):
     def __init__(self):
-        print ('Invalid token type: please add a '
-               'new one to the token types config.')
+        print('Invalid token type: please add a '
+              'new one to the token types config.')
 
 
 class MissingAtKeywordType(Exception):
     def __init__(self):
-        print ('Invalid @ keyword type. Options are: {}'.format(
-            ' ').join(css_opts['at_types']))
+        print('Invalid @ keyword type. Options are: {}'.format(
+              ' ').join(css_opts['at_types']))
 
 
 class ValidationHelpersMixin:
@@ -252,6 +252,19 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
         html = wrapper.format(**kwargs)
         return self.surrounding_html.format(self.css_input_wrapper_class, html)
 
+    def _get_new_type(self, css):
+        if self._is_hex(css):
+            new_type = 'HASH'
+        elif self._is_percentage(css):
+            new_type = 'PERCENTAGE'
+        elif self._is_float(css):
+            new_type = 'FLOAT'
+        elif self._is_int(css):
+            new_type = 'INTEGER'
+        else:
+            new_type = 'IDENT'
+        return new_type
+
     def _get_form_html_data(
             self, token, prop_name, priority=None, shorthand=False):
         """Generates form html to be used by html builder"""
@@ -268,19 +281,10 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                 html = self._get_input_html(token.type, prop_name, token.value)
         except KeyError:
             if DEBUG:
-                print '[ERROR] Property: "{}"'.format(prop_name)
+                print('[ERROR] Property: "{}"'.format(prop_name))
             # Try to recover gracefully with the appropriate type
             _css = token.as_css()
-            if self._is_hex(_css):
-                new_type = 'HASH'
-            elif self._is_percentage(_css):
-                new_type = 'PERCENTAGE'
-            elif self._is_float(_css):
-                new_type = 'FLOAT'
-            elif self._is_int(_css):
-                new_type = 'INTEGER'
-            else:
-                new_type = 'IDENT'
+            new_type = self._get_new_type(_css)
             html = self._get_input_html(new_type, prop_name, token.value)
         if priority:
             html += '<label>Important? {}</label>'.format(self._get_input_html(
@@ -345,7 +349,8 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                     sub_tokens = [t for t in token.content if t.type
                                   not in junk_types]
                     for key, sub_token in enumerate(sub_tokens):
-                        if not self._is_valid_css_declaration(sub_token.as_css()):
+                        if not self._is_valid_css_declaration(
+                                sub_token.as_css()):
                             continue
                         if sub_token.type == 'FUNCTION':
                             function_tokens = [t for t in sub_token.content
@@ -434,7 +439,8 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                         # Update prop_name to add function for more context
                         prop_name = '{} ({})'.format(
                             prop_name, token.function_name)
-                        if not self._is_valid_css_declaration(token.function_name):
+                        if not self._is_valid_css_declaration(
+                                token.function_name):
                             continue
                         if token.function_name in css_opts['pseudo_shorthand']:
                             is_shorthand = True
@@ -509,7 +515,7 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
 
     def save(self, filename):
         if self._generated_data is None:
-            print 'No data has been generated yet!'
+            print('No data has been generated yet!')
             return
         with open(filename, 'w') as newfile:
             newfile.write(self._generated_data)
@@ -517,9 +523,9 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
             newfile.close()
 
 
-if DEBUG:
-    print '[DEBUG] Running demo'
+if __name__ == '__main__':
+    print('[DEBUG] Running demo')
     try:
         InputBuilder('demo/test-inputs.css').generate().save('demo/inputs.html')
     except IOError:
-        print '[ERROR] Could not load file or generate inputs'
+        print('[ERROR] Could not load file or generate inputs')
