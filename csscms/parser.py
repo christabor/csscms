@@ -1,94 +1,10 @@
 from tinycss.page3 import CSSPage3Parser
 import css_properties
+from css_options import css_opts
+from validations import ValidationHelpersMixin
 
 
 DEBUG = True if __name__ == '__main__' else False
-
-css_opts = {
-    'bad_properties': [
-        'filter',
-        'ms-filter',
-    ],
-    'bad_values': [
-        'progid',
-        'Microsoft',
-    ],
-    'xforms': [
-        'matrix', 'matrix3d', 'skewX', 'skewY', 'perspective',
-        'translate', 'translateX', 'translateY', 'translateZ', 'translate3d',
-        'scale', 'scaleX', 'scaleY', 'scaleZ', 'scale3d',
-        'rotate', 'rotateX', 'rotateY', 'rotateZ', 'rotate3d'
-    ],
-    'odd_props': {
-        '%': 'PERCENTAGE',
-        'number': 'INTEGER',
-        'length-v': 'INTEGER',
-        'length-h': 'INTEGER',
-        'length': 'INTEGER',
-        'color': 'HASH',
-        'background-color': 'HASH',
-        'x%': 'PERCENTAGE',
-        'y%': 'PERCENTAGE',
-        'xpos': 'INTEGER',
-        'ypos': 'INTEGER',
-        'time': 'FLOAT',
-        'url': 'URI',
-        'h-shadow': 'INTEGER',
-        'v-shadow': 'INTEGER',
-        'blur': 'INTEGER',
-        'x-axis': 'INTEGER',
-        'y-axis': 'INTEGER',
-        'z-axis': 'INTEGER',
-        'keyframename': 'STRING',
-    },
-    # https://developer.mozilla.org/en-US/docs/Web/CSS/Shorthand_properties
-    'shorthand': ['background', 'font', 'margin', 'border', 'border-top',
-                  'border-right', 'border-bottom', 'border-left', 'box-shadow',
-                  'border-width', 'border-color', 'border-style',
-                  'transition', 'transform', 'padding',
-                  'list-style', 'border-radius'],
-    # In some edge cases, even single declarations allow
-    # for css functions, which should be treated as
-    # shorthand declarations instead.
-    'pseudo_shorthand': ['linear-gradient', 'radial-gradient'],
-    # @import types
-    'media_types': [
-        'print', 'tv', 'all', 'screen', 'projection',
-    ],
-    # @keyword types.
-    'at_types': [
-        'import', 'media', 'keyframes'
-    ],
-    # Properties assigned to each Token; taken from:
-    # pythonhosted.org/tinycss/parsing.html#tinycss.token_data.Token.type
-    # Maps a Token class "type" to an actual relevant input field.
-
-    # Also see http://dev.w3.org/csswg/css-syntax/#typedef-ident-token
-    # for CSS specs on token types.
-    'types': {
-        ':': '',
-        'S': '',
-        'IDENT': '<input type="text" value="{value}">',
-        'RGBHSV': '<input type="number" min="0" max="255" name="{name}" placeholder="{placeholder}">',
-        'DEG': '<input type="number" min="0" name="{name}" placeholder="{placeholder}">',
-        'FLOAT': '<input type="number" min="0" max="1" name="{name}" placeholder="{placeholder}">',
-        'INTEGER': '<input type="number" name="{name}" placeholder="{placeholder}">',
-        'NUMBER': '<input type="number" name="{name}" placeholder="{placeholder}">',
-        'PERCENTAGE': '<input type="number" min="0" name="{name}" value="{placeholder}">',
-        'HASH': '<input type="color" value="{placeholder}" name="{name}">',
-        'ATKEYWORD': '',
-        'URL': '<input type="file" name="{name}">',
-        'URI': '<input type="file" name="{name}">',
-        'UNICODE-RANGE': '',
-        'FUNCTION': '',
-        'OPTION': '<option value="{value}" {selected}>{placeholder}</option>',
-        'BOOLEAN': '<input type="checkbox" checked={checked}>',
-        'DIMENSION': '<input type="number" name="{name}"  placeholder="{placeholder}">',
-        'STRING': '<input type="text" name="{name}" placeholder="{placeholder}">',
-        'DELIM': '',
-        'VISIBLE': '',
-    },
-}
 
 
 class MissingTokenType(Exception):
@@ -103,54 +19,10 @@ class MissingAtKeywordType(Exception):
               ' ').join(css_opts['at_types']))
 
 
-class ValidationHelpersMixin:
-
-    """Just some predicate filters..."""
-
-    def _is_valid_css_declaration(self, prop_name):
-        """Allows for arbitrary validation, with some sane defaults"""
-        return (prop_name not in css_opts['bad_properties']
-                # No vendor prefixed props.
-                and not prop_name.startswith('-')
-                and prop_name not in self.unwanted_props
-                and prop_name not in css_opts['bad_values'])
-
-    def _is_hex(self, val):
-        """Checks for a valid hex string, e.g. `#fff` or `#ff0000`"""
-        if val.startswith('#') and (len(val) == 4 or len(val) == 7):
-            return True
-        return False
-
-    def _is_percentage(self, val):
-        """Checks if val is a percentage number (e.g. 10%, 10.0%)."""
-        return val.endswith('%')
-
-    def _is_int(self, val):
-        """Checks if val is an integer."""
-        try:
-            self._is_float(val)
-            if '.' in str(val):
-                return False
-            return True
-        except ValueError:
-            return False
-
-    def _is_float(self, val):
-        """Checks if val is a float."""
-        try:
-            float(val)
-            return True
-        except ValueError:
-            return False
-
-
 class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
-
     """
     Convention: all public methods return `self` to allow for chaining.
-
     TODO: docs, docstrings
-
     """
 
     def __init__(
