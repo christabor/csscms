@@ -13,5 +13,12 @@ from csscms.parser import InputBuilder
 InputBuilder('mycssfile.css').generate().save('mycss-output.html')
 ```
 
+### Optional customization options
+
+css_input_wrapper_class (string) - input class to apply
+unwanted_props (list) - a list of css-properties to filter out (e.g. 'color', 'font-size')
+custom_input_html (string) - optional input wrapper html
+show_empty: (bool) - override and show empty declarations (False by default.)
+
 ### Support / donations
 ![Donation badge](https://img.shields.io/gratipay/christabor.svg)

@@ -153,11 +153,14 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
 
     """
 
-    def __init__(self, filename, custom_input_html=None, show_empty=False):
+    def __init__(
+            self, filename, unwanted_props=[],
+            css_input_wrapper_class='css-func',
+            custom_input_html=None, show_empty=False):
         self.use_value = True
         self._generated_data = None
-        self.css_input_wrapper_class = 'css-func'
-        self.unwanted_props = []
+        self.css_input_wrapper_class = css_input_wrapper_class
+        self.unwanted_props = unwanted_props
         self.show_empty_declarations = show_empty
         self.custom_input_html = custom_input_html
         self.stylesheet = self.parse_stylesheet_file(filename)
