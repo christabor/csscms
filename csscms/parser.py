@@ -2,7 +2,8 @@ from tinycss.page3 import CSSPage3Parser
 import css_properties
 
 
-DEBUG = True
+DEBUG = True if __name__ == '__main__' else False
+
 css_opts = {
     'bad_properties': [
         'filter',
@@ -521,11 +522,3 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
             newfile.write(self._generated_data)
             newfile.write('\n')
             newfile.close()
-
-
-if __name__ == '__main__':
-    print('[DEBUG] Running demo')
-    try:
-        InputBuilder('demo/test-inputs.css').generate().save('demo/inputs.html')
-    except IOError:
-        print('[ERROR] Could not load file or generate inputs')

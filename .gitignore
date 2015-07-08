@@ -3,6 +3,7 @@ compiled source #
 *.com
 *.class
 *.dll
+build/
 assets/build/
 /**/*.min.css
 /**/*.min.js
