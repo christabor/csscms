@@ -15,6 +15,8 @@ InputBuilder('mycssfile.css').generate().save('mycss-output.html')
 
 ### Optional customization options
 
+Options are specified when creating a new ```InputBuilder``` object.
+
 css_input_wrapper_class (string) - input class to apply
 unwanted_props (list) - a list of css-properties to filter out (e.g. 'color', 'font-size')
 custom_input_html (string) - optional input wrapper html
