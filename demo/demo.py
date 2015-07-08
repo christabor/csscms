@@ -11,6 +11,7 @@ output = {
     '1': 'bootstrap3',
     '2': 'fa',
     '3': 'test-inputs',
+    '4': 'simple'
 }
 InputBuilder('{}/{}.css'.format(
     os.getcwd(), output[name])).generate().save(
