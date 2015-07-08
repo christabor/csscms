@@ -143,15 +143,19 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
             new_type = 'IDENT'
         return new_type
 
+    def _get_token_value(self, token):
+        try:
+            token_value = token.value
+        except AttributeError:
+            token_value = token.function_name
+        return token_value
+
     def _get_form_html_data(
             self, selector, token, prop_name, priority=None, shorthand=False):
         """Generates form html to be used by html builder"""
         if self._is_cruft(token.type):
             return ''
-        try:
-            token_value = token.value
-        except AttributeError:
-            token_value = token.function_name
+        token_value = self._get_token_value(token)
         # Normalize single vs multiple valued declarations
         try:
             prop_key = css_properties.rules[prop_name]
@@ -264,10 +268,11 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                             else:
                                 input_html = self._get_input_html(
                                     label,
-                                    sub_token.type, sub_token.value,
+                                    sub_token.type,
+                                    self._get_token_value(sub_token),
                                     sub_token.as_css())
                             kwargs = {
-                                'name': sub_token.value,
+                                'name': self._get_token_value(sub_token),
                                 'value': sub_token.as_css(),
                                 'input_html': input_html
                             }
@@ -345,7 +350,8 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                             # converted to plain text inputs.
                             html += self._get_input_html(
                                 ruleset.selector.as_css(),
-                                token.type, token.unit, token.value)
+                                token.type, token.unit,
+                                self._get_token_value(token))
                         else:
                             html = self._get_form_html_data(
                                 ruleset.selector.as_css(),
