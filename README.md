@@ -17,10 +17,10 @@ InputBuilder('mycssfile.css').generate().save('mycss-output.html')
 
 Options are specified when creating a new ```InputBuilder``` object.
 
-css_input_wrapper_class (string) - input class to apply
-unwanted_props (list) - a list of css-properties to filter out (e.g. 'color', 'font-size')
-custom_input_html (string) - optional input wrapper html
-show_empty: (bool) - override and show empty declarations (False by default.)
+**css_input_wrapper_class** (string) - input class to apply
+**unwanted_props** (list) - a list of css-properties to filter out (e.g. 'color', 'font-size')
+**custom_input_html** (string) - optional input wrapper html
+**show_empty** (bool) - override and show empty declarations (False by default.)
 
 ### Support / donations
 ![Donation badge](https://img.shields.io/gratipay/christabor.svg)
