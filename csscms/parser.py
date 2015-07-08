@@ -92,10 +92,12 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                 new_token_type = self._convert_odd_types(prop)
                 if new_token_type is not None:
                     non_dropdown_html += self._get_input_html(
+                        None,
                         new_token_type, prop, prop)
             else:
                 # Build the /actual/ option html.
                 dropdown_html += self._get_input_html(
+                    None,
                     'OPTION', prop, prop, selected='')
         dropdown_html += '</select>'
         return (non_dropdown_html + (
@@ -107,14 +109,14 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
             return True
         return False
 
-    def _get_input_html(self, token_type, name, value, **kwargs):
+    def _get_input_html(self, selector, token_type, name, value, **kwargs):
         if self._is_cruft(token_type):
             return ''
         value = self._strip_quotes(value)
         try:
             # Plain ol' direct mapping
             return css_opts['types'][token_type].format(
-                name=name, placeholder=value,
+                name='{}[{}]'.format(selector, name), placeholder=value,
                 value=value if self.use_value else '', **kwargs)
         except KeyError:
             raise MissingTokenType
@@ -142,10 +144,14 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
         return new_type
 
     def _get_form_html_data(
-            self, token, prop_name, priority=None, shorthand=False):
+            self, selector, token, prop_name, priority=None, shorthand=False):
         """Generates form html to be used by html builder"""
         if self._is_cruft(token.type):
             return ''
+        try:
+            token_value = token.value
+        except AttributeError:
+            token_value = token.function_name
         # Normalize single vs multiple valued declarations
         try:
             prop_key = css_properties.rules[prop_name]
@@ -154,17 +160,20 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                 html = self._get_dropdown_html(
                     prop_key['values'], name=prop_name, token=token.type)
             else:
-                html = self._get_input_html(token.type, prop_name, token.value)
+                html = self._get_input_html(
+                    selector, token.type, prop_name, token_value)
         except KeyError:
             if DEBUG:
                 print('[ERROR] Property: "{}"'.format(prop_name))
             # Try to recover gracefully with the appropriate type
             _css = token.as_css()
             new_type = self._get_new_type(_css)
-            html = self._get_input_html(new_type, prop_name, token.value)
+            html = self._get_input_html(
+                selector, new_type, prop_name, token_value)
         if priority:
             html += '<label>Important? {}</label>'.format(self._get_input_html(
-                'BOOLEAN', 'important', 'important', checked='checked'))
+                selector, 'BOOLEAN', 'important', 'important',
+                checked='checked'))
         return html
 
     def _get_at_keyword_type(self, ruleset):
@@ -237,6 +246,7 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                                 name = '{}_{}'.format(
                                     sub_token.function_name, k)
                                 input_html = self._get_input_html(
+                                    label,
                                     function_token.type, name,
                                     function_token.as_css())
                                 kwargs = {
@@ -253,6 +263,7 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                                 input_html = ''
                             else:
                                 input_html = self._get_input_html(
+                                    label,
                                     sub_token.type, sub_token.value,
                                     sub_token.as_css())
                             kwargs = {
@@ -287,7 +298,7 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
 
     def _generate_import_declarations(self, ruleset):
         inputs, name = [], 'url ({})'.format(ruleset.uri)
-        input_html = self._get_input_html('URI', ('import-url'), name)
+        input_html = self._get_input_html(name, 'URI', ('import-url'), name)
         kwargs = {
             'name': name,
             'value': name,
@@ -323,6 +334,7 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                     if hasattr(token, 'content'):
                         for sub_token in token.content:
                             html += self._get_form_html_data(
+                                ruleset.selector.as_css(),
                                 sub_token, prop_name, priority=priority,
                                 shorthand=is_shorthand)
                     else:
@@ -332,9 +344,11 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
                             # like single declarations, but rather, are
                             # converted to plain text inputs.
                             html += self._get_input_html(
+                                ruleset.selector.as_css(),
                                 token.type, token.unit, token.value)
                         else:
                             html = self._get_form_html_data(
+                                ruleset.selector.as_css(),
                                 token, prop_name, priority=priority,
                                 shorthand=is_shorthand)
                 # Add the final rendered html + labels, etc

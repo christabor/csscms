@@ -7,7 +7,7 @@ except ImportError:
 
 
 PACKAGE = 'csscms'
-VERSION = '0.1.1'
+VERSION = '0.2.1'
 
 
 def _get_requires(filepath):
