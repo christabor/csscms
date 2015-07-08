@@ -56,4 +56,4 @@ def load_all_w3c_props(root_url, max_open=None):
     return data
 
 
-print load_all_w3c_props('http://www.w3schools.com/cssref/')
+print(load_all_w3c_props('http://www.w3schools.com/cssref/'))
