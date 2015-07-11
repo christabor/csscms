@@ -1,7 +1,11 @@
 from pyquery import PyQuery as pq
 
 
-"""A quick and dirty scraper for w3c's css properties list."""
+"""
+A quick and dirty scraper for w3c's css properties list.
+See css_properties.py for the example output. This is meant to be run once, except when new properties
+need to be scraped.
+"""
 
 
 def strip_all_prefixes(string):
