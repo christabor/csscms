@@ -37,7 +37,6 @@ setup(
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
         'Intended Audience :: Developers',
-        'Natural Language :: English',
         'Operating System :: OS Independent',
         'Topic :: Text Processing',
         'Topic :: Utilities',
