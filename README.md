@@ -1,3 +1,6 @@
+[![MIT Badge](http://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/christabor/csscms/master/LICENSE)
+![Donation badge](https://img.shields.io/gratipay/christabor.svg)
+
 CSSCMS - CSS `Content Management System`
 
 A declarative approach to generating HTML GUIs for editing CSS properties.
@@ -30,6 +33,3 @@ Options are specified when creating a new ```InputBuilder``` object.
 * **unwanted_props** (list) - a list of css-properties to filter out (e.g. 'color', 'font-size')
 * **custom_input_html** (string) - optional input wrapper html
 * **show_empty** (bool) - override and show empty declarations (False by default.)
-
-### Support / donations
-![Donation badge](https://img.shields.io/gratipay/christabor.svg)
