@@ -10,8 +10,7 @@ All major css types have been tested with parsing (see the demo css for examples
 ### Installation
 
 It's not currently added to PyPi, but you can install it easily:
-```
-python setup.py
+```python
 python setup.py install
 ```
 You may need to install using ```sudo```, depending on how your user is setup.
