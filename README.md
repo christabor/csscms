@@ -32,3 +32,13 @@ Options are specified when creating a new ```InputBuilder``` object.
 * **unwanted_props** (list) - a list of css-properties to filter out (e.g. 'color', 'font-size')
 * **custom_input_html** (string) - optional input wrapper html
 * **show_empty** (bool) - override and show empty declarations (False by default.)
+
+
+### Tests
+
+Tests require nose. Run tests via:
+
+```python
+# From the root directory:
+nosetests
+```

@@ -1,11 +1,13 @@
 import unittest
 from csscms import parser
+from os import getcwd
 
 
 class ParserTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.helper = parser.InputBuilder('css_test.css')
+        self.helper = parser.InputBuilder(
+            '{}/csscms/tests/css_test.css'.format(getcwd()))
 
     def test_parse_media(self):
         # TODO
