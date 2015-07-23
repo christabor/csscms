@@ -10,7 +10,6 @@ class ValidationHelpersMixin:
         return (prop_name not in css_opts['bad_properties']
                 # No vendor prefixed props.
                 and not prop_name.startswith('-')
-                and prop_name not in self.unwanted_props
                 and prop_name not in css_opts['bad_values'])
 
     def _is_hex(self, val):
@@ -26,7 +25,7 @@ class ValidationHelpersMixin:
     def _is_int(self, val):
         """Checks if val is an integer."""
         try:
-            self._is_float(val)
+            int(val)
             if '.' in str(val):
                 return False
             return True

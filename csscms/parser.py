@@ -16,7 +16,7 @@ class MissingTokenType(Exception):
 class MissingAtKeywordType(Exception):
     def __init__(self):
         print('Invalid @ keyword type. Options are: {}'.format(
-              ' ').join(css_opts['at_types']))
+            ' ').join(css_opts['at_types']))
 
 
 class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
@@ -26,16 +26,19 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
     """
 
     def __init__(
-            self, filename, unwanted_props=[],
+            self, data, unwanted_props=[],
             css_input_wrapper_class='css-func',
-            custom_input_html=None, show_empty=False):
+            custom_input_html=None, show_empty=False, use_bytes=False):
         self.use_value = True
         self._generated_data = None
         self.css_input_wrapper_class = css_input_wrapper_class
         self.unwanted_props = unwanted_props
         self.show_empty_declarations = show_empty
         self.custom_input_html = custom_input_html
-        self.stylesheet = self.parse_stylesheet_file(filename)
+        if use_bytes:
+            self.stylesheet = self.parse_stylesheet_bytes(data)
+        else:
+            self.stylesheet = self.parse_stylesheet_file(data)
         self.animation_group_html = ('<div class="animation-group">'
                                      '{percentages}</div>')
         self.surrounding_html = '<div class="{}">{}</div>'
@@ -132,16 +135,15 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
 
     def _get_new_type(self, css):
         if self._is_hex(css):
-            new_type = 'HASH'
+            return 'HASH'
         elif self._is_percentage(css):
-            new_type = 'PERCENTAGE'
+            return 'PERCENTAGE'
         elif self._is_float(css):
-            new_type = 'FLOAT'
+            return 'FLOAT'
         elif self._is_int(css):
-            new_type = 'INTEGER'
+            return 'INTEGER'
         else:
-            new_type = 'IDENT'
-        return new_type
+            return 'IDENT'
 
     def _get_token_value(self, token):
         try:
@@ -181,17 +183,16 @@ class InputBuilder(ValidationHelpersMixin, CSSPage3Parser):
         return html
 
     def _get_at_keyword_type(self, ruleset):
-        try:
-            if ruleset.uri or ruleset.media:
-                return 'import'
-            if ruleset.rules:
-                return 'media'
-            if ruleset.keyframes:
-                return 'keyframes'
-            else:
-                return ruleset.at_keyword.replace('@', '')
-        except AttributeError:
-            return ruleset.at_keyword.replace('@', '')
+        keys = ruleset.keys()
+        if 'uri' in keys or 'media' in keys:
+            return 'import'
+        if 'rules' in keys:
+            return 'media'
+        if 'keyframes' in keys:
+            return 'keyframes'
+        if 'at_keyword' in keys:
+            return ruleset['at_keyword'].replace('@', '')
+        raise MissingAtKeywordType
 
     def _group_keyframe_tokens(self, tokens):
         """Groups a list of tokens from tinycss by brackets and contained css.

@@ -1,10 +1,9 @@
-from pyquery import PyQuery as pq
-
+from pyquery import PyQuery as Pq
 
 """
 A quick and dirty scraper for w3c's css properties list.
-See css_properties.py for the example output. This is meant to be run once, except when new properties
-need to be scraped.
+See css_properties.py for the example output. This is meant to be run once,
+except when new properties need to be scraped.
 """
 
 
@@ -33,12 +32,12 @@ def load_all_w3c_props(root_url, max_open=None):
     table_class = '.reference.notranslate'
     data = {}
     urls = []
-    doc = pq(url=root_url)
-    links = pq(doc).find(table_class).find('a')
+    doc = Pq(url=root_url)
+    links = Pq(doc).find(table_class).find('a')
 
     def _process(_, selector):
         if selector is not None:
-            prop = pq(selector).find('td').eq(0).text().strip()
+            prop = Pq(selector).find('td').eq(0).text().strip()
             if len(prop) > 0:
                 return urls.append(prop)
         else:
@@ -48,9 +47,9 @@ def load_all_w3c_props(root_url, max_open=None):
         if max_open is not None:
             if k >= max_open:
                 break
-        url = pq(link).attr('href')
-        follow_doc = pq(url='{}/{}'.format(root_url, url))
-        pq(follow_doc).find(table_class).find('tr').each(_process)
+        url = Pq(link).attr('href')
+        follow_doc = Pq(url='{}/{}'.format(root_url, url))
+        Pq(follow_doc).find(table_class).find('tr').each(_process)
         # Normalize property from w3c's url structure
         url = normalize_w3c_link(url)
         # Push all current options
@@ -60,4 +59,5 @@ def load_all_w3c_props(root_url, max_open=None):
     return data
 
 
-print(load_all_w3c_props('http://www.w3schools.com/cssref/'))
+if __name__ == '__main__':
+    print(load_all_w3c_props('http://www.w3schools.com/cssref/'))
