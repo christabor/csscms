@@ -37,4 +37,4 @@ Options are specified when creating a new ```InputBuilder``` object.
 
 ### Tests
 
-Test coverage provided by nose. Run tests via ```python nosetests```
+Test coverage provided by [nose](https://nose.readthedocs.org/en/latest/). Run tests via ```python nosetests```
