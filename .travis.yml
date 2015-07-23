@@ -1,0 +1,12 @@
+test: "nosetests"
+language: python
+install:
+    - pip install -r requirements.txt
+    - pip install coveralls
+    - python setup.py install
+python:
+    - "2.7"
+script:
+    nosetests --with-coverage --cover-package=csscms
+after_success:
+    - coveralls

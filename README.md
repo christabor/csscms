@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/christabor/csscms/badge.svg?branch=master&service=github)](https://coveralls.io/github/christabor/csscms?branch=master)
+[![Build Status](https://travis-ci.org/christabor/csscms.svg?branch=master)](https://travis-ci.org/christabor/csscms)
 [![MIT Badge](http://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/christabor/csscms/master/LICENSE)
 ![Donation badge](https://img.shields.io/gratipay/christabor.svg)
 
@@ -33,12 +35,6 @@ Options are specified when creating a new ```InputBuilder``` object.
 * **custom_input_html** (string) - optional input wrapper html
 * **show_empty** (bool) - override and show empty declarations (False by default.)
 
-
 ### Tests
 
-Tests require nose. Run tests via:
-
-```python
-# From the root directory:
-nosetests
-```
+Test coverage provided by nose. Run tests via ```python nosetests```
