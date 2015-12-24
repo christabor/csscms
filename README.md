@@ -21,7 +21,7 @@ You may need to install using ```sudo```, depending on how your user is setup.
 
 Usage is quite easy. All methods return ```self```, making the interface chainable.
 
-```
+```python
 from csscms.parser import InputBuilder
 InputBuilder('mycssfile.css').generate().save('mycss-output.html')
 ```
@@ -37,4 +37,4 @@ Options are specified when creating a new ```InputBuilder``` object.
 
 ### Tests
 
-Test coverage provided by [nose](https://nose.readthedocs.org/en/latest/). Run tests via ```python nosetests```
+Test coverage provided by [nose](https://nose.readthedocs.org/en/latest/). Run tests via ```nosetests```
